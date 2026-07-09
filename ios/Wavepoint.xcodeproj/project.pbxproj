@@ -23,6 +23,8 @@
 		BE7DC9A0A2607D0BE869CC39 /* CleanupDeckBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */; };
 		BF9F10DB4B0FFF5A9957CD13 /* SpotifyTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4AF804E72A69E32E8B56EC /* SpotifyTokenStore.swift */; };
 		C34EF976181E65AEEDF32A41 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8246A6ED5074862C9F4C451C /* AppConfiguration.swift */; };
+		CE62F1176521D1C3CA787600 /* SpotifyWebAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */; };
+		D3541DCA402A7C0DB7EB5612 /* SpotifyWebAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB8D0FF9CB130FEFC6FF58C /* SpotifyWebAPIClient.swift */; };
 		D75260C1BD2EB836974A49DE /* AppSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952280BA63E55F7D7734C3D1 /* AppSessionModel.swift */; };
 		E7C8C3AA2B63283272654316 /* AppRootScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F636382530F94D42290AA9 /* AppRootScreenTests.swift */; };
 		EEBEF4C6A0CFBE7055FF18C5 /* SpotifyLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A46888CE1D36B388C075F855 /* SpotifyLoginView.swift */; };
@@ -43,6 +45,8 @@
 /* Begin PBXFileReference section */
 		04D557F05D05F82556211A69 /* CleanupDeckBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupDeckBuilder.swift; sourceTree = "<group>"; };
 		0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupDeckBuilderTests.swift; sourceTree = "<group>"; };
+		27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyWebAPIClientTests.swift; sourceTree = "<group>"; };
+		2FB8D0FF9CB130FEFC6FF58C /* SpotifyWebAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyWebAPIClient.swift; sourceTree = "<group>"; };
 		4D66D3B0CA8718EE2B35BAFB /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		50D9FC12DFADFCF841743696 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		597F343B99D313ADD8E27F15 /* SpotifyTokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyTokenStoreTests.swift; sourceTree = "<group>"; };
@@ -88,6 +92,7 @@
 				B132EFB810181821F32DA339 /* ScaffoldTests.swift */,
 				9DD18CF3D5ABCA6CE44478A4 /* SpotifyAuthorizationRequestTests.swift */,
 				597F343B99D313ADD8E27F15 /* SpotifyTokenStoreTests.swift */,
+				27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */,
 			);
 			path = WavepointTests;
 			sourceTree = "<group>";
@@ -200,6 +205,7 @@
 			isa = PBXGroup;
 			children = (
 				7AED15A73FF01C71B3356C95 /* SpotifyTrack.swift */,
+				2FB8D0FF9CB130FEFC6FF58C /* SpotifyWebAPIClient.swift */,
 			);
 			path = Spotify;
 			sourceTree = "<group>";
@@ -317,6 +323,7 @@
 				3435DCBF4AFF46CB882D4A32 /* SpotifyProviderTokens.swift in Sources */,
 				BF9F10DB4B0FFF5A9957CD13 /* SpotifyTokenStore.swift in Sources */,
 				0A4D23C257E282C37451FC7A /* SpotifyTrack.swift in Sources */,
+				D3541DCA402A7C0DB7EB5612 /* SpotifyWebAPIClient.swift in Sources */,
 				5EF30D3FFAFB402913404E0C /* SupabaseSpotifyAuthenticator.swift in Sources */,
 				17214CB361942B3167AE7562 /* Theme.swift in Sources */,
 				2A7C59C5AF4EDBF82544CDC5 /* WavepointApp.swift in Sources */,
@@ -333,6 +340,7 @@
 				366FB2F96FE30CDEF3A59B7D /* ScaffoldTests.swift in Sources */,
 				17BAE05340058A6E4F191E9E /* SpotifyAuthorizationRequestTests.swift in Sources */,
 				EF708EBCDB32E6405D99CFCC /* SpotifyTokenStoreTests.swift in Sources */,
+				CE62F1176521D1C3CA787600 /* SpotifyWebAPIClientTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
