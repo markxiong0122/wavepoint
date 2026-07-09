@@ -814,7 +814,7 @@
 
     .result-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       margin-bottom: 26px;
       border: 1px solid rgba(244, 240, 231, 0.28);
     }
@@ -823,8 +823,12 @@
       padding: 15px 8px;
     }
 
-    .result-stat + .result-stat {
+    .result-stat:nth-child(even) {
       border-left: 1px solid rgba(244, 240, 231, 0.28);
+    }
+
+    .result-stat:nth-child(n + 3) {
+      border-top: 1px solid rgba(244, 240, 231, 0.28);
     }
 
     .result-value {
@@ -1489,6 +1493,10 @@
                 <span class="result-label">Removals</span>
               </div>
               <div class="result-stat">
+                <strong class="result-value" data-result-cleared>0 min</strong>
+                <span class="result-label">Music cleared</span>
+              </div>
+              <div class="result-stat">
                 <strong class="result-value" data-result-time>00:00</strong>
                 <span class="result-label">Elapsed</span>
               </div>
@@ -1762,7 +1770,12 @@
           var cells = "";
           for (var row = 0; row < 6; row += 1) {
             for (var col = 0; col < 6; col += 1) {
-              var fill = (row + col) % 3 === 0 ? b : ((row + col) % 2 === 0 ? a : c);
+              var fill = c;
+              if ((row + col) % 3 === 0) {
+                fill = b;
+              } else if ((row + col) % 2 === 0) {
+                fill = a;
+              }
               cells += "<rect x='" + (col * 100) + "' y='" + (row * 100) + "' width='100' height='100' fill='" + fill + "' stroke='#151513' stroke-width='6'/>";
             }
           }
@@ -1828,6 +1841,10 @@
       function resetCardPosition() {
         card.style.transform = "";
         card.style.transition = "";
+        clearDragVisuals();
+      }
+
+      function clearDragVisuals() {
         removeStamp.style.opacity = "0";
         keepStamp.style.opacity = "0";
         state.dragX = 0;
@@ -1992,6 +2009,7 @@
         results.hidden = false;
         document.querySelector("[data-result-decisions]").textContent = String(state.decisions.length);
         document.querySelector("[data-result-removals]").textContent = String(stagedCount());
+        document.querySelector("[data-result-cleared]").textContent = Math.round(state.removedSeconds / 60) + " min";
         document.querySelector("[data-result-time]").textContent = formatTimer(state.completedAt - state.startedAt);
         state.audioPlaying = false;
         status.textContent = "Sprint complete. " + stagedCount() + " songs staged for removal.";
@@ -2053,7 +2071,13 @@
         }
 
         card.style.transition = "transform 240ms " + getComputedStyle(document.documentElement).getPropertyValue("--ease-snap");
-        resetCardPosition();
+        card.style.transform = "";
+        clearDragVisuals();
+        window.setTimeout(function () {
+          if (!state.dragging && !state.animating) {
+            card.style.transition = "";
+          }
+        }, 250);
       }
 
       removeButton.addEventListener("click", function () {

@@ -75,6 +75,40 @@ test('supports pointer removal and shows sprint results', async () => {
     );
     assert.equal(await page.locator('[data-result-decisions]').textContent(), '6');
     assert.equal(await page.locator('[data-result-removals]').textContent(), '1');
+    assert.equal(await page.locator('[data-result-cleared]').count(), 1);
+    assert.equal(await page.locator('[data-result-cleared]').textContent(), '4 min');
+    assert.deepEqual(pageErrors, []);
+  } finally {
+    await browser.close();
+  }
+});
+
+test('springs a subthreshold drag back into place', async () => {
+  const { browser, page, pageErrors } = await openPrototype();
+
+  try {
+    const card = page.locator('[data-swipe-card]');
+    await card.scrollIntoViewIfNeeded();
+    const box = await card.boundingBox();
+    assert.ok(box, 'swipe card should be visible');
+
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down();
+    await page.mouse.move(centerX + 60, centerY, { steps: 4 });
+    await page.mouse.up();
+
+    assert.notEqual(
+      await card.evaluate((element) => getComputedStyle(element).transitionDuration),
+      '0s'
+    );
+    await page.waitForTimeout(280);
+    assert.equal(
+      await card.evaluate((element) => getComputedStyle(element).transform),
+      'none'
+    );
+    assert.equal(await page.locator('[data-progress-label]').textContent(), '0 / 6 decided');
     assert.deepEqual(pageErrors, []);
   } finally {
     await browser.close();
