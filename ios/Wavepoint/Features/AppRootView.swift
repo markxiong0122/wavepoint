@@ -1,18 +1,100 @@
 import SwiftUI
 
-struct AppRootView: View {
-  var body: some View {
-    ZStack {
-      Color(red: 0.055, green: 0.052, blue: 0.049)
-        .ignoresSafeArea()
+enum AppRootScreen: Equatable {
+  case progress
+  case login
+  case cleanup
+  case error(String)
 
-      Text("Wavepoint")
-        .font(.system(size: 34, weight: .black, design: .rounded))
-        .foregroundStyle(Color(red: 0.96, green: 0.93, blue: 0.84))
+  init(state: AppSessionState) {
+    switch state {
+    case .restoring, .authorizing:
+      self = .progress
+    case .signedOut:
+      self = .login
+    case .signedIn:
+      self = .cleanup
+    case let .failed(message):
+      self = .error(message)
+    }
+  }
+
+  var accessibilityIdentifier: String {
+    switch self {
+    case .progress: "auth-progress"
+    case .login: "spotify-login-button"
+    case .cleanup: "cleanup-home"
+    case .error: "auth-error"
     }
   }
 }
 
-#Preview {
-  AppRootView()
+struct AppRootView: View {
+  @State private var model: AppSessionModel
+
+  init(model: AppSessionModel) {
+    _model = State(initialValue: model)
+  }
+
+  var body: some View {
+    Group {
+      switch AppRootScreen(state: model.state) {
+      case .progress:
+        authenticationProgress
+      case .login:
+        SpotifyLoginView {
+          Task { await model.signIn() }
+        }
+      case .cleanup:
+        CleanupPlaceholderView {
+          Task { await model.signOut() }
+        }
+      case let .error(message):
+        authenticationError(message)
+      }
+    }
+    .task {
+      guard model.state == .restoring else { return }
+      await model.restore()
+    }
+  }
+
+  private var authenticationProgress: some View {
+    VStack(spacing: 20) {
+      CutRecordMark(size: 72)
+      ProgressView()
+        .tint(WavepointTheme.keep)
+      Text(model.state == .authorizing ? "OPENING SPOTIFY…" : "RESTORING SESSION…")
+        .font(.system(size: 12, weight: .bold, design: .monospaced))
+        .tracking(0.8)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .foregroundStyle(WavepointTheme.paper)
+    .background(WavepointTheme.darkSurface)
+    .accessibilityIdentifier("auth-progress")
+  }
+
+  private func authenticationError(_ message: String) -> some View {
+    VStack(alignment: .leading, spacing: 18) {
+      Text("CONNECTION MISSED")
+        .font(.system(size: 12, weight: .bold, design: .monospaced))
+        .foregroundStyle(WavepointTheme.remove)
+      Text(message)
+        .font(.system(size: 22, weight: .bold, design: .rounded))
+      Button("TRY AGAIN") {
+        Task { await model.signIn() }
+      }
+      .font(.system(size: 13, weight: .black, design: .monospaced))
+      .foregroundStyle(WavepointTheme.ink)
+      .padding(.horizontal, 18)
+      .frame(minHeight: 50)
+      .background(WavepointTheme.keep)
+      .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+    }
+    .padding(24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .foregroundStyle(WavepointTheme.paper)
+    .background(WavepointTheme.darkSurface)
+    .accessibilityIdentifier("auth-error")
+  }
 }

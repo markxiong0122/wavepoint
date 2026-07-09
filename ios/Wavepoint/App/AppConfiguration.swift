@@ -7,7 +7,7 @@ struct AppConfiguration: Equatable {
   let callbackURL: URL
 
   static func load(from bundle: Bundle = .main) throws -> AppConfiguration {
-    AppConfiguration(
+    let configuration = AppConfiguration(
       supabaseURL: try bundle.requiredURL(forInfoDictionaryKey: "SUPABASE_URL"),
       supabasePublishableKey: try bundle.requiredString(
         forInfoDictionaryKey: "SUPABASE_PUBLISHABLE_KEY"
@@ -17,6 +17,10 @@ struct AppConfiguration: Equatable {
       ),
       callbackURL: try bundle.requiredURL(forInfoDictionaryKey: "OAUTH_CALLBACK_URL")
     )
+    guard !configuration.supabasePublishableKey.contains("REPLACE_ME") else {
+      throw AppConfigurationError.placeholderValue("SUPABASE_PUBLISHABLE_KEY")
+    }
+    return configuration
   }
 }
 
@@ -43,6 +47,7 @@ private extension Bundle {
 enum AppConfigurationError: LocalizedError, Equatable {
   case missingValue(String)
   case invalidURL(String)
+  case placeholderValue(String)
 
   var errorDescription: String? {
     switch self {
@@ -50,6 +55,8 @@ enum AppConfigurationError: LocalizedError, Equatable {
       "Missing app configuration value: \(key)."
     case let .invalidURL(key):
       "Invalid URL in app configuration: \(key)."
+    case let .placeholderValue(key):
+      "Add the public \(key) value in Config/Shared.xcconfig."
     }
   }
 }

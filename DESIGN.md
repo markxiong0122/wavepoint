@@ -149,10 +149,10 @@ Motion must make the next decision available quickly. It must never become a rew
 
 ## Logo
 
-- **Working mark:** Swipe W.
-- **Construction:** Opposing swipe paths build a W; a play triangle anchors it in music.
-- **Primary lockup:** Keep-colored square, ink W, remove-colored play triangle.
-- **Clear space:** At least one play-triangle width around the mark.
+- **Selected mark:** Cut Record.
+- **Construction:** An ink record is cleanly cut by a directional wedge; a coral label and acid-lime cut line turn deletion into a precise, musical action.
+- **Primary lockup:** Ink record, coral center label, paper cutout, and keep-colored cut line.
+- **Clear space:** At least one center-label radius around the mark.
 - **Do not:** Use Spotify green, a circular sound-wave mark, or the Spotify wordmark as part of Wavepoint identity.
 
 ## Decisions log
@@ -163,4 +163,4 @@ Motion must make the next decision available quickly. It must never become a rew
 | 2026-07-09 | Use record-sleeve arcade direction | It makes cleanup playful and fast while keeping album art central. |
 | 2026-07-09 | Make reduction the reward | Competing swipe products focus on discovery; Wavepoint should celebrate library progress. |
 | 2026-07-09 | Stage removals before committing | Speed needs a safe undo boundary before destructive API calls. |
-| 2026-07-09 | Use Swipe W as the working mark | It combines motion, binary choice, and music without resembling Spotify. |
+| 2026-07-09 | Select Cut Record as the product mark | It makes the cleanup promise immediate while retaining a tactile music identity. |
