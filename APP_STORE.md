@@ -21,7 +21,7 @@ Finally clear the songs buried in your Spotify Liked Songs—fast, safely, and o
 
 Wavepoint turns an overloaded Spotify library into a quick cleanup session.
 
-Hear an available preview, see when a track was saved, and make one simple decision: keep it or stage it for removal. Old songs and tracks outside your recent rotation are more likely to surface, so the forgotten corners of your library get attention first.
+Hear a 15-second segment, see when a track was saved, and make one simple decision: keep it or stage it for removal. When Spotify provides a direct preview it plays inside Wavepoint. When it does not, an explicit tap can play through the Spotify app, which may open once to connect. Old songs and tracks outside your recent rotation are more likely to surface, so the forgotten corners of your library get attention first.
 
 Nothing is removed while you swipe. Wavepoint keeps every removal staged on your iPhone until you review the exact list and confirm the batch.
 
@@ -29,12 +29,12 @@ Features:
 
 - Weighted cleanup decks from your Spotify Liked Songs
 - Fast swipe, button, and undo controls
-- Available 15-second previews and Open in Spotify fallback
+- 15-second listening controls with optional Spotify app playback
 - Safe removal review before Spotify changes
 - Secure Spotify tokens in iOS Keychain
 - No ads, tracking, or analytics
 
-Spotify account required. Preview availability is determined by Spotify.
+Spotify account required. The Spotify iOS app must be installed for App Remote playback. Spotify playback eligibility and preview availability are determined by Spotify.
 
 ## Keywords
 
@@ -55,12 +55,29 @@ To exercise the destructive flow safely:
 
 The app requests `user-library-read`, `user-library-modify`, `user-read-recently-played`, and `user-read-email`. It does not collect analytics or upload the user's library to a Wavepoint database.
 
+It also requests `app-remote-control`. When a direct preview URL is unavailable, the reviewer can tap **Play 15s in Spotify**. Spotify may open once to authorize or wake playback; later tracks remain in Wavepoint while the App Remote connection is active. This action is never triggered automatically.
+
+Account deletion is available under **Account → Delete Account** and requires a second destructive confirmation. It deletes the Supabase Auth user and local Wavepoint credentials. It does not delete the Spotify account or songs. Use only a disposable review account when testing deletion.
+
+## App privacy answers
+
+- **Does this app or its third-party partners collect data?** Yes.
+- **Contact Info → Name:** Collected, linked to the user, App Functionality. Supabase Auth receives the Spotify display name as provider metadata.
+- **Contact Info → Email Address:** Collected, linked to the user, App Functionality.
+- **Identifiers → User ID:** Collected, linked to the user, App Functionality. This includes Supabase and Spotify account identifiers.
+- **User Content → Photos or Videos:** Collected, linked to the user, App Functionality. Supabase Auth may retain the Spotify profile image URL supplied as provider metadata; Wavepoint does not display or otherwise use it.
+- **Tracking:** No.
+- **Advertising, marketing, analytics, or data brokerage:** No.
+- **Privacy Choices URL:** `https://markxiong0122.github.io/wavepoint/privacy.html`
+
+Spotify library contents, recent listening history, cleanup decisions, and playback state are processed for the requested feature but are not retained on Wavepoint servers. Spotify credentials are retained in the iOS Keychain, not in a Wavepoint database.
+
 ## Screenshots
 
 Capture on a 6.9-inch iPhone simulator or device. The first required screenshot is ready at `app-store/screenshots/6.9-inch/01-login.png` (1320 × 2868):
 
 1. Cut Record login screen. (Ready)
-2. Track card with preview control.
+2. Track card with 15-second listening control.
 3. Left-swipe Remove stamp.
 4. Right-swipe Keep stamp.
 5. Staged-removal review.

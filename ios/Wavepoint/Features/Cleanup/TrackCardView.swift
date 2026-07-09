@@ -4,7 +4,6 @@ struct TrackCardView: View {
   let track: SpotifyTrack
   let position: Int
   let total: Int
-  let remotePlayback: SpotifyAppRemoteService
   let onRemove: () -> Void
   let onKeep: () -> Void
 
@@ -24,7 +23,6 @@ struct TrackCardView: View {
     self.track = track
     self.position = position
     self.total = total
-    self.remotePlayback = remotePlayback
     self.onRemove = onRemove
     self.onKeep = onKeep
     _previewPlayer = State(

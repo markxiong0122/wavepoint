@@ -17,13 +17,15 @@
   <h1>Wavepoint Privacy Policy</h1>
   <p><strong>Effective July 9, 2026.</strong> Wavepoint is an iPhone utility that helps you review and remove tracks from your Spotify Liked Songs library.</p>
   <h2>Data Wavepoint accesses</h2>
-  <p>With your permission, Wavepoint reads your saved music and recent listening history, and removes library items only after you confirm a removal batch. Spotify access and refresh tokens are stored in the iOS Keychain on your device. Cleanup decisions stay on your device.</p>
+  <p>With your permission, Wavepoint reads your saved music and recent listening history, removes library items only after you confirm a removal batch, and controls Spotify playback only after you tap a Spotify listening control. Spotify access and refresh tokens are stored in the iOS Keychain on your device. Cleanup decisions stay on your device.</p>
+  <p>Supabase Auth stores a Wavepoint authentication record so you can remain signed in. It includes a Supabase user ID and Spotify-provided account metadata such as your Spotify account ID, email address, display name, and profile image URL when Spotify supplies them. Wavepoint uses this information only for authentication and account security.</p>
   <h2>Collection and tracking</h2>
-  <p>Wavepoint does not sell personal data, use advertising SDKs, track you across apps or websites, or collect analytics in this version. It does not store your Spotify library, listening history, or cleanup decisions on a Wavepoint server. Spotify and Supabase process authentication and API requests under their own policies.</p>
+  <p>Wavepoint does not sell personal data, use advertising SDKs, track you across apps or websites, or collect product analytics in this version. It does not store your Spotify library, listening history, cleanup decisions, or playback history in a Wavepoint database. Spotify and Supabase process authentication and API requests under their own policies, and their infrastructure may process standard request information for security and service operation.</p>
   <h2>Library safety</h2>
   <p>Swiping never immediately changes Spotify. Removals are staged locally and sent to Spotify only after you review the list and confirm its exact count.</p>
   <h2>Retention and deletion</h2>
-  <p>Sign Out removes Wavepoint's locally stored Spotify tokens. You may also delete the app or revoke Wavepoint from your Spotify account's Apps page.</p>
+  <p>Supabase retains your Wavepoint authentication record until you delete the account. In Wavepoint, open <strong>Account</strong>. <strong>Sign Out</strong> clears locally stored Spotify tokens and signs out of Supabase. <strong>Delete Account</strong> permanently deletes the Supabase authentication record and clears local Spotify credentials after a second confirmation.</p>
+  <p>Deleting a Wavepoint account does not delete your Spotify account or songs and does not automatically revoke Spotify's authorization grant. You can separately revoke Wavepoint from your Spotify account's Apps page. Because iOS Keychain items can outlive an app installation, use Sign Out or Delete Account before uninstalling if you want credentials cleared immediately.</p>
   <h2>Contact</h2>
   <p>For privacy or support questions, <a href="https://github.com/markxiong0122/wavepoint/issues">open a Wavepoint issue</a>.</p>
 </body>
