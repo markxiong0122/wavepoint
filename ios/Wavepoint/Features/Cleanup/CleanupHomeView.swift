@@ -33,10 +33,16 @@ enum CleanupScreen: Equatable {
 
 struct CleanupHomeView: View {
   @State private var model: CleanupSessionModel
+  private let remotePlayback: SpotifyAppRemoteService
   let onSignOut: () -> Void
 
-  init(model: CleanupSessionModel, onSignOut: @escaping () -> Void) {
+  init(
+    model: CleanupSessionModel,
+    remotePlayback: SpotifyAppRemoteService,
+    onSignOut: @escaping () -> Void
+  ) {
     _model = State(initialValue: model)
+    self.remotePlayback = remotePlayback
     self.onSignOut = onSignOut
   }
 
@@ -109,6 +115,7 @@ struct CleanupHomeView: View {
           track: track,
           position: model.completedCount + 1,
           total: model.totalCount,
+          remotePlayback: remotePlayback,
           onRemove: model.removeCurrentTrack,
           onKeep: model.keepCurrentTrack
         )

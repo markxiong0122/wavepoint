@@ -1,3 +1,5 @@
 SUPABASE_URL = https:/$()/pvlykxebusgsgrtrkrqh.supabase.co
 SUPABASE_PUBLISHABLE_KEY = sb_publishable_sPaFSnNn9t3A7Id_zc1vsA_YxQJN3Dz
 OAUTH_CALLBACK_URL = ai.mapier.swipe:/$()/login-callback
+SPOTIFY_CLIENT_ID = 6603fd9c06fe40bd823ecacd102c96ed
+SPOTIFY_APP_REMOTE_CALLBACK_URL = ai.mapier.swipe:/$()/spotify-app-remote-callback

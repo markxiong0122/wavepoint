@@ -32,10 +32,16 @@ enum AppRootScreen: Equatable {
 struct AppRootView: View {
   @State private var model: AppSessionModel
   @State private var cleanupModel: CleanupSessionModel
+  private let remotePlayback: SpotifyAppRemoteService
 
-  init(model: AppSessionModel, cleanupModel: CleanupSessionModel) {
+  init(
+    model: AppSessionModel,
+    cleanupModel: CleanupSessionModel,
+    remotePlayback: SpotifyAppRemoteService
+  ) {
     _model = State(initialValue: model)
     _cleanupModel = State(initialValue: cleanupModel)
+    self.remotePlayback = remotePlayback
   }
 
   var body: some View {
@@ -48,10 +54,14 @@ struct AppRootView: View {
           Task { await model.signIn() }
         }
       case .cleanup:
-        CleanupHomeView(model: cleanupModel) {
-          cleanupModel.reset()
-          Task { await model.signOut() }
-        }
+        CleanupHomeView(
+          model: cleanupModel,
+          remotePlayback: remotePlayback,
+          onSignOut: {
+            cleanupModel.reset()
+            Task { await model.signOut() }
+          }
+        )
       case .error(let message):
         authenticationError(message)
       }
@@ -59,6 +69,9 @@ struct AppRootView: View {
     .task {
       guard model.state == .restoring else { return }
       await model.restore()
+    }
+    .onOpenURL { url in
+      Task { try? await remotePlayback.handleOpenURL(url) }
     }
   }
 

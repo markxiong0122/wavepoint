@@ -4,6 +4,8 @@ struct AppConfiguration: Equatable {
   let supabaseURL: URL
   let supabasePublishableKey: String
   let callbackURL: URL
+  let spotifyClientID: String
+  let spotifyAppRemoteCallbackURL: URL
 
   static func load(from bundle: Bundle = .main) throws -> AppConfiguration {
     let configuration = AppConfiguration(
@@ -11,10 +13,19 @@ struct AppConfiguration: Equatable {
       supabasePublishableKey: try bundle.requiredString(
         forInfoDictionaryKey: "SUPABASE_PUBLISHABLE_KEY"
       ),
-      callbackURL: try bundle.requiredURL(forInfoDictionaryKey: "OAUTH_CALLBACK_URL")
+      callbackURL: try bundle.requiredURL(forInfoDictionaryKey: "OAUTH_CALLBACK_URL"),
+      spotifyClientID: try bundle.requiredString(
+        forInfoDictionaryKey: "SPOTIFY_CLIENT_ID"
+      ),
+      spotifyAppRemoteCallbackURL: try bundle.requiredURL(
+        forInfoDictionaryKey: "SPOTIFY_APP_REMOTE_CALLBACK_URL"
+      )
     )
     guard !configuration.supabasePublishableKey.contains("REPLACE_ME") else {
       throw AppConfigurationError.placeholderValue("SUPABASE_PUBLISHABLE_KEY")
+    }
+    guard !configuration.spotifyClientID.contains("REPLACE_ME") else {
+      throw AppConfigurationError.placeholderValue("SPOTIFY_CLIENT_ID")
     }
     return configuration
   }

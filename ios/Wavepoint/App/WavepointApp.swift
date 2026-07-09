@@ -4,6 +4,7 @@ import SwiftUI
 struct WavepointApp: App {
   private let sessionModel: AppSessionModel?
   private let cleanupModel: CleanupSessionModel?
+  private let remotePlayback: SpotifyAppRemoteService?
   private let startupError: String?
 
   init() {
@@ -33,18 +34,32 @@ struct WavepointApp: App {
       cleanupModel = CleanupSessionModel(
         service: spotifyClient
       )
+      remotePlayback = SpotifyAppRemoteService(
+        client: SpotifySDKAppRemoteClient(
+          clientID: configuration.spotifyClientID,
+          callbackURL: configuration.spotifyAppRemoteCallbackURL
+        ),
+        accessToken: {
+          try await credentialProvider.accessToken(forceRefresh: false)
+        }
+      )
       startupError = nil
     } catch {
       sessionModel = nil
       cleanupModel = nil
+      remotePlayback = nil
       startupError = error.localizedDescription
     }
   }
 
   var body: some Scene {
     WindowGroup {
-      if let sessionModel, let cleanupModel {
-        AppRootView(model: sessionModel, cleanupModel: cleanupModel)
+      if let sessionModel, let cleanupModel, let remotePlayback {
+        AppRootView(
+          model: sessionModel,
+          cleanupModel: cleanupModel,
+          remotePlayback: remotePlayback
+        )
       } else {
         ConfigurationRequiredView(message: startupError ?? "App configuration is missing.")
       }

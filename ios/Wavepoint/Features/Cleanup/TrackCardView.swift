@@ -4,13 +4,33 @@ struct TrackCardView: View {
   let track: SpotifyTrack
   let position: Int
   let total: Int
+  let remotePlayback: SpotifyAppRemoteService
   let onRemove: () -> Void
   let onKeep: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var dragOffset: CGSize = .zero
-  @State private var previewPlayer = TrackPreviewPlayer()
+  @State private var previewPlayer: TrackPreviewPlayer
   @State private var isCommittingDecision = false
+
+  init(
+    track: SpotifyTrack,
+    position: Int,
+    total: Int,
+    remotePlayback: SpotifyAppRemoteService,
+    onRemove: @escaping () -> Void,
+    onKeep: @escaping () -> Void
+  ) {
+    self.track = track
+    self.position = position
+    self.total = total
+    self.remotePlayback = remotePlayback
+    self.onRemove = onRemove
+    self.onKeep = onKeep
+    _previewPlayer = State(
+      initialValue: TrackPreviewPlayer(remote: remotePlayback)
+    )
+  }
 
   var body: some View {
     GeometryReader { proxy in
@@ -24,10 +44,10 @@ struct TrackCardView: View {
     }
     .frame(maxHeight: .infinity)
     .onAppear {
-      previewPlayer.prepare(url: track.previewURL)
+      previewPlayer.prepare(previewURL: track.previewURL, spotifyURI: track.uri)
     }
     .onDisappear {
-      previewPlayer.stop()
+      Task { await previewPlayer.stop() }
     }
   }
 
@@ -56,6 +76,18 @@ struct TrackCardView: View {
           .lineLimit(1)
 
         previewControl
+
+        if previewPlayer.source == .spotifyRemote, previewPlayer.state == .ready {
+          Text("Spotify may open once to connect.")
+            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+            .foregroundStyle(WavepointTheme.mutedInk)
+        }
+
+        if let errorMessage = previewPlayer.errorMessage {
+          Text(errorMessage)
+            .font(.system(size: 10, weight: .semibold, design: .rounded))
+            .foregroundStyle(WavepointTheme.remove)
+        }
 
         Link(destination: track.spotifyURL) {
           Label("OPEN IN SPOTIFY", systemImage: "arrow.up.right")
@@ -113,7 +145,7 @@ struct TrackCardView: View {
 
   private var previewControl: some View {
     Button {
-      previewPlayer.togglePlayback()
+      Task { await previewPlayer.togglePlayback() }
     } label: {
       HStack(spacing: 8) {
         Image(systemName: previewIcon)
@@ -121,7 +153,7 @@ struct TrackCardView: View {
         Text(previewLabel)
           .font(.system(size: 10, weight: .bold, design: .monospaced))
         Spacer()
-        if previewPlayer.state == .playing {
+        if previewPlayer.state == .playing || previewPlayer.state == .connecting {
           ProgressView()
             .tint(WavepointTheme.audio)
             .controlSize(.small)
@@ -144,6 +176,7 @@ struct TrackCardView: View {
   private var previewIcon: String {
     switch previewPlayer.state {
     case .playing: "pause.fill"
+    case .connecting: "ellipsis"
     case .unavailable: "waveform.slash"
     case .ready, .paused: "play.fill"
     }
@@ -152,9 +185,15 @@ struct TrackCardView: View {
   private var previewLabel: String {
     switch previewPlayer.state {
     case .unavailable: "PREVIEW UNAVAILABLE"
-    case .ready: "PLAY 15S PREVIEW"
-    case .playing: "PAUSE PREVIEW"
-    case .paused: "RESUME PREVIEW"
+    case .ready:
+      previewPlayer.source == .spotifyRemote
+        ? "PLAY 15S IN SPOTIFY"
+        : "PLAY 15S PREVIEW"
+    case .connecting: "CONNECTING TO SPOTIFY…"
+    case .playing:
+      previewPlayer.source == .spotifyRemote ? "PAUSE SPOTIFY" : "PAUSE PREVIEW"
+    case .paused:
+      previewPlayer.source == .spotifyRemote ? "RESUME SPOTIFY" : "RESUME PREVIEW"
     }
   }
 

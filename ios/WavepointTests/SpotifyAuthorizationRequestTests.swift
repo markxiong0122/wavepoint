@@ -12,7 +12,8 @@ final class SpotifyAuthorizationRequestTests: XCTestCase {
     XCTAssertEqual(request.callbackURL.absoluteString, "ai.mapier.swipe://login-callback")
     XCTAssertEqual(
       request.scopes,
-      "user-read-email user-library-read user-library-modify user-read-recently-played"
+      "user-read-email user-library-read user-library-modify "
+        + "user-read-recently-played app-remote-control"
     )
     XCTAssertEqual(request.callbackScheme, "ai.mapier.swipe")
   }

@@ -8,9 +8,18 @@ final class ScaffoldTests: XCTestCase {
     let configuration = AppConfiguration(
       supabaseURL: url,
       supabasePublishableKey: "publishable",
-      callbackURL: callbackURL
+      callbackURL: callbackURL,
+      spotifyClientID: "spotify-client",
+      spotifyAppRemoteCallbackURL: URL(
+        string: "ai.mapier.swipe://spotify-app-remote-callback"
+      )!
     )
 
     XCTAssertEqual(configuration.callbackURL, callbackURL)
+    XCTAssertEqual(configuration.spotifyClientID, "spotify-client")
+    XCTAssertEqual(
+      configuration.spotifyAppRemoteCallbackURL.absoluteString,
+      "ai.mapier.swipe://spotify-app-remote-callback"
+    )
   }
 }

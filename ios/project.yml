@@ -9,6 +9,9 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
     exactVersion: 2.46.0
+  SpotifyiOS:
+    url: https://github.com/spotify/ios-sdk.git
+    exactVersion: 5.0.1
 
 settings:
   base:
@@ -38,6 +41,10 @@ targets:
         OAUTH_CALLBACK_URL: $(OAUTH_CALLBACK_URL)
         SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
         SUPABASE_URL: $(SUPABASE_URL)
+        SPOTIFY_APP_REMOTE_CALLBACK_URL: $(SPOTIFY_APP_REMOTE_CALLBACK_URL)
+        SPOTIFY_CLIENT_ID: $(SPOTIFY_CLIENT_ID)
+        LSApplicationQueriesSchemes:
+          - spotify
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -53,6 +60,8 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
+      - package: SpotifyiOS
+        product: SpotifyiOS
 
   WavepointTests:
     type: bundle.unit-test
