@@ -55,11 +55,11 @@ To exercise the destructive flow safely:
 
 The app requests `user-library-read`, `user-library-modify`, `user-read-recently-played`, and `user-read-email`. It does not collect analytics or upload the user's library to a Wavepoint database.
 
-## Screenshot plan
+## Screenshots
 
-Capture on a 6.3-inch iPhone simulator or device:
+Capture on a 6.9-inch iPhone simulator or device. The first required screenshot is ready at `app-store/screenshots/6.9-inch/01-login.png` (1320 × 2868):
 
-1. Cut Record login screen.
+1. Cut Record login screen. (Ready)
 2. Track card with preview control.
 3. Left-swipe Remove stamp.
 4. Right-swipe Keep stamp.
