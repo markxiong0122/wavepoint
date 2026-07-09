@@ -8,4 +8,5 @@ protocol SpotifyAuthenticating: Sendable {
   func restoreSession() async throws -> SpotifyAuthSession?
   func signIn() async throws -> SpotifyAuthSession
   func signOut() async throws
+  func clearLocalSession() async throws
 }

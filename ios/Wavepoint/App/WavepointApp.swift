@@ -19,7 +19,11 @@ struct WavepointApp: App {
           client: supabaseClient,
           callbackURL: configuration.callbackURL
         ),
-        tokenStore: tokenStore
+        tokenStore: tokenStore,
+        accountDeleter: SupabaseAccountDeletionService(
+          client: supabaseClient,
+          configuration: configuration
+        )
       )
       let credentialProvider = SpotifyCredentialProvider(
         tokenStore: tokenStore,

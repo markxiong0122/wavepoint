@@ -6,6 +6,7 @@ enum AppSessionState: Equatable, Sendable {
   case signedOut
   case authorizing
   case signedIn
+  case deletingAccount
   case failed(String)
 }
 
@@ -13,17 +14,21 @@ enum AppSessionState: Equatable, Sendable {
 @Observable
 final class AppSessionModel {
   private(set) var state: AppSessionState
+  private(set) var accountDeletionError: String?
 
   private let authenticator: any SpotifyAuthenticating
   private let tokenStore: any SpotifyTokenStoring
+  private let accountDeleter: any AccountDeleting
 
   init(
     authenticator: any SpotifyAuthenticating,
     tokenStore: any SpotifyTokenStoring,
+    accountDeleter: any AccountDeleting,
     initialState: AppSessionState = .restoring
   ) {
     self.authenticator = authenticator
     self.tokenStore = tokenStore
+    self.accountDeleter = accountDeleter
     state = initialState
   }
 
@@ -76,5 +81,26 @@ final class AppSessionModel {
     } catch {
       state = .failed(error.localizedDescription)
     }
+  }
+
+  func deleteAccount() async {
+    accountDeletionError = nil
+    state = .deletingAccount
+
+    do {
+      try await accountDeleter.deleteAccount()
+    } catch {
+      accountDeletionError = error.localizedDescription
+      state = .signedIn
+      return
+    }
+
+    try? await authenticator.clearLocalSession()
+    try? tokenStore.delete()
+    state = .signedOut
+  }
+
+  func dismissAccountDeletionError() {
+    accountDeletionError = nil
   }
 }

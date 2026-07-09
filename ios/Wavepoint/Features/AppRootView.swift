@@ -8,7 +8,7 @@ enum AppRootScreen: Equatable {
 
   init(state: AppSessionState) {
     switch state {
-    case .restoring, .authorizing:
+    case .restoring, .authorizing, .deletingAccount:
       self = .progress
     case .signedOut:
       self = .login
@@ -60,6 +60,10 @@ struct AppRootView: View {
           onSignOut: {
             cleanupModel.reset()
             Task { await model.signOut() }
+          },
+          onDeleteAccount: {
+            cleanupModel.reset()
+            Task { await model.deleteAccount() }
           }
         )
       case .error(let message):
@@ -73,6 +77,19 @@ struct AppRootView: View {
     .onOpenURL { url in
       Task { try? await remotePlayback.handleOpenURL(url) }
     }
+    .alert(
+      "ACCOUNT NOT DELETED",
+      isPresented: Binding(
+        get: { model.accountDeletionError != nil },
+        set: { isPresented in
+          if !isPresented { model.dismissAccountDeletionError() }
+        }
+      )
+    ) {
+      Button("OK") { model.dismissAccountDeletionError() }
+    } message: {
+      Text(model.accountDeletionError ?? "Please try again.")
+    }
   }
 
   private var authenticationProgress: some View {
@@ -80,7 +97,7 @@ struct AppRootView: View {
       CutRecordMark(size: 72)
       ProgressView()
         .tint(WavepointTheme.keep)
-      Text(model.state == .authorizing ? "OPENING SPOTIFY…" : "RESTORING SESSION…")
+      Text(authenticationProgressLabel)
         .font(.system(size: 12, weight: .bold, design: .monospaced))
         .tracking(0.8)
     }
@@ -88,6 +105,17 @@ struct AppRootView: View {
     .foregroundStyle(WavepointTheme.paper)
     .background(WavepointTheme.darkSurface)
     .accessibilityIdentifier("auth-progress")
+  }
+
+  private var authenticationProgressLabel: String {
+    switch model.state {
+    case .authorizing:
+      "OPENING SPOTIFY…"
+    case .deletingAccount:
+      "DELETING ACCOUNT…"
+    default:
+      "RESTORING SESSION…"
+    }
   }
 
   private func authenticationError(_ message: String) -> some View {

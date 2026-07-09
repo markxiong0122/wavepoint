@@ -7,7 +7,8 @@ final class AppSessionModelTests: XCTestCase {
     let authenticator = FakeSpotifyAuthenticator(currentSession: nil)
     let model = AppSessionModel(
       authenticator: authenticator,
-      tokenStore: InMemorySpotifyTokenStore()
+      tokenStore: InMemorySpotifyTokenStore(),
+      accountDeleter: FakeAccountDeletionService()
     )
 
     await model.restore()
@@ -28,6 +29,7 @@ final class AppSessionModelTests: XCTestCase {
     let model = AppSessionModel(
       authenticator: authenticator,
       tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
       initialState: .signedOut
     )
 
@@ -49,6 +51,7 @@ final class AppSessionModelTests: XCTestCase {
     let model = AppSessionModel(
       authenticator: authenticator,
       tokenStore: InMemorySpotifyTokenStore(),
+      accountDeleter: FakeAccountDeletionService(),
       initialState: .signedOut
     )
 
@@ -69,6 +72,7 @@ final class AppSessionModelTests: XCTestCase {
     let model = AppSessionModel(
       authenticator: authenticator,
       tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
       initialState: .signedIn
     )
 
@@ -79,10 +83,62 @@ final class AppSessionModelTests: XCTestCase {
     let signOutCallCount = await authenticator.signOutCallCount
     XCTAssertEqual(signOutCallCount, 1)
   }
+
+  func testDeleteAccountShowsProgressThenClearsAllLocalCredentials() async throws {
+    let authenticator = FakeSpotifyAuthenticator()
+    let deletionService = FakeAccountDeletionService(delay: .milliseconds(40))
+    let tokenStore = InMemorySpotifyTokenStore()
+    try tokenStore.save(
+      SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    )
+    let model = AppSessionModel(
+      authenticator: authenticator,
+      tokenStore: tokenStore,
+      accountDeleter: deletionService,
+      initialState: .signedIn
+    )
+
+    let task = Task { await model.deleteAccount() }
+    while model.state == .signedIn {
+      await Task.yield()
+    }
+
+    XCTAssertEqual(model.state, .deletingAccount)
+    await task.value
+    XCTAssertEqual(model.state, .signedOut)
+    XCTAssertNil(tokenStore.tokens)
+    let deletionCallCount = await deletionService.callCount
+    let clearLocalSessionCallCount = await authenticator.clearLocalSessionCallCount
+    XCTAssertEqual(deletionCallCount, 1)
+    XCTAssertEqual(clearLocalSessionCallCount, 1)
+  }
+
+  func testDeleteFailureKeepsSessionAndShowsActionableError() async throws {
+    let authenticator = FakeSpotifyAuthenticator()
+    let deletionService = FakeAccountDeletionService(error: FakeDeletionError.failed)
+    let tokenStore = InMemorySpotifyTokenStore()
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    try tokenStore.save(tokens)
+    let model = AppSessionModel(
+      authenticator: authenticator,
+      tokenStore: tokenStore,
+      accountDeleter: deletionService,
+      initialState: .signedIn
+    )
+
+    await model.deleteAccount()
+
+    XCTAssertEqual(model.state, .signedIn)
+    XCTAssertEqual(model.accountDeletionError, "Please try again. Your account was not deleted.")
+    XCTAssertEqual(tokenStore.tokens, tokens)
+    let clearLocalSessionCallCount = await authenticator.clearLocalSessionCallCount
+    XCTAssertEqual(clearLocalSessionCallCount, 0)
+  }
 }
 
 private actor FakeSpotifyAuthenticator: SpotifyAuthenticating {
   var signOutCallCount = 0
+  var clearLocalSessionCallCount = 0
 
   private let currentSession: SpotifyAuthSession?
   private let signInSession: SpotifyAuthSession
@@ -109,6 +165,35 @@ private actor FakeSpotifyAuthenticator: SpotifyAuthenticating {
 
   func signOut() async throws {
     signOutCallCount += 1
+  }
+
+  func clearLocalSession() async throws {
+    clearLocalSessionCallCount += 1
+  }
+}
+
+private actor FakeAccountDeletionService: AccountDeleting {
+  private(set) var callCount = 0
+  private let delay: Duration
+  private let error: Error?
+
+  init(delay: Duration = .zero, error: Error? = nil) {
+    self.delay = delay
+    self.error = error
+  }
+
+  func deleteAccount() async throws {
+    callCount += 1
+    try await Task.sleep(for: delay)
+    if let error { throw error }
+  }
+}
+
+private enum FakeDeletionError: LocalizedError {
+  case failed
+
+  var errorDescription: String? {
+    "Please try again. Your account was not deleted."
   }
 }
 

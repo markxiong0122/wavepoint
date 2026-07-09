@@ -14,7 +14,9 @@
 		279218A86D8EC254D2634CCB /* SpotifyCredentialProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1054182C94721EFFA9681FF0 /* SpotifyCredentialProviderTests.swift */; };
 		2A7C59C5AF4EDBF82544CDC5 /* WavepointApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D86E70C9F1ADF03410DAF8 /* WavepointApp.swift */; };
 		3435DCBF4AFF46CB882D4A32 /* SpotifyProviderTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66DF62FF86172C82BBCD4380 /* SpotifyProviderTokens.swift */; };
+		3504FB47A1B0436E9607E455 /* AccountDeletionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B58A87DE49D1F33E26BB1C /* AccountDeletionServiceTests.swift */; };
 		366FB2F96FE30CDEF3A59B7D /* ScaffoldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B132EFB810181821F32DA339 /* ScaffoldTests.swift */; };
+		500C0CD5F9D6DFCDB75C8710 /* AccountSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F9C1643D237EC7456E63C3 /* AccountSheetView.swift */; };
 		51241917103F0BBA9B3C7792 /* SpotifySDKAppRemoteClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0885F88820F423DF338D2139 /* SpotifySDKAppRemoteClient.swift */; };
 		5D1D37541082C7766EF09FC5 /* CleanupScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E1E4A53844DFCF795B916A /* CleanupScreenTests.swift */; };
 		5EF30D3FFAFB402913404E0C /* SupabaseSpotifyAuthenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C299C8814D618E29CB9B297A /* SupabaseSpotifyAuthenticator.swift */; };
@@ -44,6 +46,7 @@
 		E7C8C3AA2B63283272654316 /* AppRootScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F636382530F94D42290AA9 /* AppRootScreenTests.swift */; };
 		EEBEF4C6A0CFBE7055FF18C5 /* SpotifyLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A46888CE1D36B388C075F855 /* SpotifyLoginView.swift */; };
 		EF708EBCDB32E6405D99CFCC /* SpotifyTokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 597F343B99D313ADD8E27F15 /* SpotifyTokenStoreTests.swift */; };
+		EF926545BF9388DC324EB271 /* AccountDeletionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22DC0B8A2456E253BAE1CFD5 /* AccountDeletionService.swift */; };
 		F5ABCED07A957621E2AEDD31 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 098DBB4A9A2A82835DEE2E8E /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +65,7 @@
 		0885F88820F423DF338D2139 /* SpotifySDKAppRemoteClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifySDKAppRemoteClient.swift; sourceTree = "<group>"; };
 		0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupDeckBuilderTests.swift; sourceTree = "<group>"; };
 		1054182C94721EFFA9681FF0 /* SpotifyCredentialProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyCredentialProviderTests.swift; sourceTree = "<group>"; };
+		22DC0B8A2456E253BAE1CFD5 /* AccountDeletionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionService.swift; sourceTree = "<group>"; };
 		27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyWebAPIClientTests.swift; sourceTree = "<group>"; };
 		2FB8D0FF9CB130FEFC6FF58C /* SpotifyWebAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyWebAPIClient.swift; sourceTree = "<group>"; };
 		40140A49E0CEEB1775291B7B /* CleanupSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupSessionModel.swift; sourceTree = "<group>"; };
@@ -75,6 +79,8 @@
 		79B08F3C0961A318163802EA /* CleanupSessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupSessionModelTests.swift; sourceTree = "<group>"; };
 		7AED15A73FF01C71B3356C95 /* SpotifyTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyTrack.swift; sourceTree = "<group>"; };
 		8246A6ED5074862C9F4C451C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		89B58A87DE49D1F33E26BB1C /* AccountDeletionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionServiceTests.swift; sourceTree = "<group>"; };
+		89F9C1643D237EC7456E63C3 /* AccountSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSheetView.swift; sourceTree = "<group>"; };
 		952280BA63E55F7D7734C3D1 /* AppSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionModel.swift; sourceTree = "<group>"; };
 		971FDA9B72FF2961934EB2A8 /* AppSessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionModelTests.swift; sourceTree = "<group>"; };
 		993F6EB57F5CE3FA5E331961 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
@@ -126,6 +132,7 @@
 		0B610E7083200D0A61EB2B72 /* WavepointTests */ = {
 			isa = PBXGroup;
 			children = (
+				89B58A87DE49D1F33E26BB1C /* AccountDeletionServiceTests.swift */,
 				F1F636382530F94D42290AA9 /* AppRootScreenTests.swift */,
 				971FDA9B72FF2961934EB2A8 /* AppSessionModelTests.swift */,
 				0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */,
@@ -140,6 +147,14 @@
 				CA67A87616EC387085111426 /* TrackPreviewPlayerTests.swift */,
 			);
 			path = WavepointTests;
+			sourceTree = "<group>";
+		};
+		264FD1D3B1838397E604D71C /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				89F9C1643D237EC7456E63C3 /* AccountSheetView.swift */,
+			);
+			path = Account;
 			sourceTree = "<group>";
 		};
 		439123A651F2C6692377F891 /* Products */ = {
@@ -176,6 +191,7 @@
 			isa = PBXGroup;
 			children = (
 				4D66D3B0CA8718EE2B35BAFB /* AppRootView.swift */,
+				264FD1D3B1838397E604D71C /* Account */,
 				86FE74ABD751340BCC1D59E9 /* Authentication */,
 				4AAE4402270972C4E0A4DD33 /* Cleanup */,
 			);
@@ -200,6 +216,7 @@
 		7E76F740172ECF1D5B9C7CF9 /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				22DC0B8A2456E253BAE1CFD5 /* AccountDeletionService.swift */,
 				952280BA63E55F7D7734C3D1 /* AppSessionModel.swift */,
 				DEDF49B87D168D7E43853177 /* SpotifyAuthenticating.swift */,
 				E386F9F751F8E102D0A530A2 /* SpotifyCredentialProvider.swift */,
@@ -369,6 +386,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EF926545BF9388DC324EB271 /* AccountDeletionService.swift in Sources */,
+				500C0CD5F9D6DFCDB75C8710 /* AccountSheetView.swift in Sources */,
 				C34EF976181E65AEEDF32A41 /* AppConfiguration.swift in Sources */,
 				7CB26DF04F0F86CA184888D4 /* AppRootView.swift in Sources */,
 				D75260C1BD2EB836974A49DE /* AppSessionModel.swift in Sources */,
@@ -398,6 +417,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3504FB47A1B0436E9607E455 /* AccountDeletionServiceTests.swift in Sources */,
 				E7C8C3AA2B63283272654316 /* AppRootScreenTests.swift in Sources */,
 				650570CD3ECFD13542BCDF72 /* AppSessionModelTests.swift in Sources */,
 				BE7DC9A0A2607D0BE869CC39 /* CleanupDeckBuilderTests.swift in Sources */,

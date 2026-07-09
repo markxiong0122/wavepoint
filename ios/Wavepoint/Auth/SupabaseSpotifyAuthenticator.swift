@@ -73,6 +73,10 @@ struct SupabaseSpotifyAuthenticator: SpotifyAuthenticating {
   func signOut() async throws {
     try await client.auth.signOut()
   }
+
+  func clearLocalSession() async throws {
+    try await client.auth.signOut(scope: .local)
+  }
 }
 
 extension SpotifyAuthSession {

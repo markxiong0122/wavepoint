@@ -31,19 +31,29 @@ enum CleanupScreen: Equatable {
   }
 }
 
+private enum CleanupSheet: String, Identifiable {
+  case account
+
+  var id: String { rawValue }
+}
+
 struct CleanupHomeView: View {
   @State private var model: CleanupSessionModel
+  @State private var presentedSheet: CleanupSheet?
   private let remotePlayback: SpotifyAppRemoteService
   let onSignOut: () -> Void
+  let onDeleteAccount: () -> Void
 
   init(
     model: CleanupSessionModel,
     remotePlayback: SpotifyAppRemoteService,
-    onSignOut: @escaping () -> Void
+    onSignOut: @escaping () -> Void,
+    onDeleteAccount: @escaping () -> Void
   ) {
     _model = State(initialValue: model)
     self.remotePlayback = remotePlayback
     self.onSignOut = onSignOut
+    self.onDeleteAccount = onDeleteAccount
   }
 
   var body: some View {
@@ -75,6 +85,17 @@ struct CleanupHomeView: View {
     .task {
       guard model.state == .idle else { return }
       await model.load()
+    }
+    .sheet(item: $presentedSheet) { sheet in
+      switch sheet {
+      case .account:
+        AccountSheetView(
+          onSignOut: onSignOut,
+          onDeleteAccount: onDeleteAccount
+        )
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+      }
     }
   }
 
@@ -141,7 +162,9 @@ struct CleanupHomeView: View {
           .tracking(0.8)
       }
       Spacer()
-      Button("SIGN OUT", action: onSignOut)
+      Button("ACCOUNT") {
+        presentedSheet = .account
+      }
         .font(.system(size: 9, weight: .bold, design: .monospaced))
         .foregroundStyle(WavepointTheme.paper.opacity(0.7))
         .frame(minHeight: 44)
