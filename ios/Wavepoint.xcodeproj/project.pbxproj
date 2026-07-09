@@ -24,11 +24,13 @@
 		7AD842E90A9AA8F2DF30CDCE /* CleanupSessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79B08F3C0961A318163802EA /* CleanupSessionModelTests.swift */; };
 		7CB26DF04F0F86CA184888D4 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D66D3B0CA8718EE2B35BAFB /* AppRootView.swift */; };
 		82EFFD57228F157F6D95B2EF /* CleanupDeckBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D557F05D05F82556211A69 /* CleanupDeckBuilder.swift */; };
+		8FC9B90685CE4735F3A59FF5 /* TrackPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D9E1AF5B4F688924C485C3 /* TrackPreviewPlayer.swift */; };
 		994D86FFD2B48824DE82D840 /* SpotifyAuthenticating.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDF49B87D168D7E43853177 /* SpotifyAuthenticating.swift */; };
 		B184C51348BC333CE4823D65 /* CleanupHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43EF097ACFFF8C8D435D53BF /* CleanupHomeView.swift */; };
 		BE7DC9A0A2607D0BE869CC39 /* CleanupDeckBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */; };
 		BF9F10DB4B0FFF5A9957CD13 /* SpotifyTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4AF804E72A69E32E8B56EC /* SpotifyTokenStore.swift */; };
 		C34EF976181E65AEEDF32A41 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8246A6ED5074862C9F4C451C /* AppConfiguration.swift */; };
+		C5D32966A0D9AC23130839AC /* TrackPreviewPlayerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA67A87616EC387085111426 /* TrackPreviewPlayerTests.swift */; };
 		CE62F1176521D1C3CA787600 /* SpotifyWebAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */; };
 		D3541DCA402A7C0DB7EB5612 /* SpotifyWebAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB8D0FF9CB130FEFC6FF58C /* SpotifyWebAPIClient.swift */; };
 		D75260C1BD2EB836974A49DE /* AppSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952280BA63E55F7D7734C3D1 /* AppSessionModel.swift */; };
@@ -75,9 +77,11 @@
 		A9BD32CEB2737F31D8B3D54D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AB104C5400927ED6E2C0D5CA /* WavepointTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WavepointTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B132EFB810181821F32DA339 /* ScaffoldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaffoldTests.swift; sourceTree = "<group>"; };
+		B2D9E1AF5B4F688924C485C3 /* TrackPreviewPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPreviewPlayer.swift; sourceTree = "<group>"; };
 		C299C8814D618E29CB9B297A /* SupabaseSpotifyAuthenticator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseSpotifyAuthenticator.swift; sourceTree = "<group>"; };
 		C2D86E70C9F1ADF03410DAF8 /* WavepointApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WavepointApp.swift; sourceTree = "<group>"; };
 		C9CCF39806C97AC0AD58AC43 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		CA67A87616EC387085111426 /* TrackPreviewPlayerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPreviewPlayerTests.swift; sourceTree = "<group>"; };
 		D19A4B2364CE44A3EE6C1034 /* Wavepoint.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Wavepoint.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD4AF804E72A69E32E8B56EC /* SpotifyTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyTokenStore.swift; sourceTree = "<group>"; };
 		DEDF49B87D168D7E43853177 /* SpotifyAuthenticating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAuthenticating.swift; sourceTree = "<group>"; };
@@ -97,6 +101,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		03F6F3534E7284F61F24833F /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				B2D9E1AF5B4F688924C485C3 /* TrackPreviewPlayer.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		0B610E7083200D0A61EB2B72 /* WavepointTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -109,6 +121,7 @@
 				9DD18CF3D5ABCA6CE44478A4 /* SpotifyAuthorizationRequestTests.swift */,
 				597F343B99D313ADD8E27F15 /* SpotifyTokenStoreTests.swift */,
 				27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */,
+				CA67A87616EC387085111426 /* TrackPreviewPlayerTests.swift */,
 			);
 			path = WavepointTests;
 			sourceTree = "<group>";
@@ -157,6 +170,7 @@
 			isa = PBXGroup;
 			children = (
 				F16612DD980674F5E12C7526 /* App */,
+				03F6F3534E7284F61F24833F /* Audio */,
 				7E76F740172ECF1D5B9C7CF9 /* Auth */,
 				D008BD747854B5A0CE022994 /* Cleanup */,
 				A0BC3367E630D0EEA4817157 /* Design */,
@@ -352,6 +366,7 @@
 				5EF30D3FFAFB402913404E0C /* SupabaseSpotifyAuthenticator.swift in Sources */,
 				17214CB361942B3167AE7562 /* Theme.swift in Sources */,
 				E79E4B4645B305CCABE11A74 /* TrackCardView.swift in Sources */,
+				8FC9B90685CE4735F3A59FF5 /* TrackPreviewPlayer.swift in Sources */,
 				2A7C59C5AF4EDBF82544CDC5 /* WavepointApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -369,6 +384,7 @@
 				17BAE05340058A6E4F191E9E /* SpotifyAuthorizationRequestTests.swift in Sources */,
 				EF708EBCDB32E6405D99CFCC /* SpotifyTokenStoreTests.swift in Sources */,
 				CE62F1176521D1C3CA787600 /* SpotifyWebAPIClientTests.swift in Sources */,
+				C5D32966A0D9AC23130839AC /* TrackPreviewPlayerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

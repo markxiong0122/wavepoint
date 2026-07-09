@@ -9,6 +9,7 @@ struct TrackCardView: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var dragOffset: CGSize = .zero
+  @State private var previewPlayer = TrackPreviewPlayer()
 
   var body: some View {
     GeometryReader { proxy in
@@ -22,6 +23,12 @@ struct TrackCardView: View {
         .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.88), value: dragOffset)
     }
     .frame(maxHeight: .infinity)
+    .onAppear {
+      previewPlayer.prepare(url: track.previewURL)
+    }
+    .onDisappear {
+      previewPlayer.stop()
+    }
   }
 
   private var card: some View {
@@ -47,6 +54,8 @@ struct TrackCardView: View {
           .font(.system(size: 16, weight: .semibold, design: .rounded))
           .foregroundStyle(WavepointTheme.mutedInk)
           .lineLimit(1)
+
+        previewControl
 
         Link(destination: track.spotifyURL) {
           Label("OPEN IN SPOTIFY", systemImage: "arrow.up.right")
@@ -99,6 +108,55 @@ struct TrackCardView: View {
     ZStack {
       WavepointTheme.midSurface
       CutRecordMark(size: 82)
+    }
+  }
+
+  private var previewControl: some View {
+    Button {
+      previewPlayer.togglePlayback()
+    } label: {
+      HStack(spacing: 8) {
+        Image(systemName: previewIcon)
+          .font(.system(size: 13, weight: .black))
+        Text(previewLabel)
+          .font(.system(size: 10, weight: .bold, design: .monospaced))
+        Spacer()
+        if previewPlayer.state == .playing {
+          ProgressView()
+            .tint(WavepointTheme.audio)
+            .controlSize(.small)
+        }
+      }
+      .foregroundStyle(
+        previewPlayer.state == .unavailable
+          ? WavepointTheme.mutedInk
+          : WavepointTheme.ink
+      )
+      .padding(.horizontal, 10)
+      .frame(minHeight: 40)
+      .background(WavepointTheme.audio.opacity(previewPlayer.state == .unavailable ? 0.12 : 0.42))
+      .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+    }
+    .disabled(previewPlayer.state == .unavailable)
+    .accessibilityLabel(previewLabel)
+  }
+
+  private var previewIcon: String {
+    switch previewPlayer.state {
+    case .playing: "pause.fill"
+    case .unavailable: "waveform.slash"
+    case .failed: "exclamationmark.triangle.fill"
+    case .ready, .paused: "play.fill"
+    }
+  }
+
+  private var previewLabel: String {
+    switch previewPlayer.state {
+    case .unavailable: "PREVIEW UNAVAILABLE"
+    case .ready: "PLAY 15S PREVIEW"
+    case .playing: "PAUSE PREVIEW"
+    case .paused: "RESUME PREVIEW"
+    case .failed: "PREVIEW FAILED"
     }
   }
 
