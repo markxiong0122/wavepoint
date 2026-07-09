@@ -21,15 +21,15 @@ Daily music recommendations are not part of the first version.
 
 ## Typography
 
-- **Display:** Bricolage Grotesque, variable width 82–88, weight 700–800. Its compressed forms create speed and poster energy without looking like a generic music app.
+- **Display:** Bricolage Grotesque, variable width 92–96, weight 700–800. Its compact forms create speed and poster energy without sacrificing legibility.
 - **Body:** DM Sans, weight 400–700. It remains legible in compact track metadata and controls.
 - **UI labels:** IBM Plex Mono, weight 500–600. Use it for timers, counters, keyboard hints, and short uppercase system labels.
 - **Loading:** Google Fonts for the prototype. Production should self-host the exact WOFF2 subsets.
 
 ### Type scale
 
-- Display XL: `clamp(4.2rem, 8.8vw, 8.8rem)`, line-height `0.79`
-- Display L: `clamp(3.2rem, 7vw, 6.6rem)`, line-height `0.84`
+- Display XL: `clamp(4.2rem, 8.8vw, 8.8rem)`, line-height `0.82`
+- Display L: `clamp(3.2rem, 7vw, 6.6rem)`, line-height `0.90`
 - Track title: `clamp(2rem, 7vw, 2.72rem)`, line-height `0.94`
 - Panel title: `1.55rem`, line-height `1`
 - Body L: `1.2rem`, line-height `1.55`
