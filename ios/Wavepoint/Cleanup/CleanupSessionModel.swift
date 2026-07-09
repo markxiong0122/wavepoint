@@ -124,6 +124,12 @@ final class CleanupSessionModel {
     state = .reviewing
   }
 
+  func reset() {
+    state = .idle
+    deck = []
+    decisions = []
+  }
+
   private func decide(_ outcome: CleanupOutcome) {
     guard state == .deciding, let currentTrack else { return }
     decisions.append(CleanupDecision(track: currentTrack, outcome: outcome))

@@ -1,0 +1,79 @@
+import SwiftUI
+
+struct RemovalReviewView: View {
+  let tracks: [SpotifyTrack]
+  let onCancel: () -> Void
+  let onConfirm: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 18) {
+      HStack {
+        Button("← BACK", action: onCancel)
+          .font(.system(size: 11, weight: .bold, design: .monospaced))
+          .frame(minHeight: 44)
+        Spacer()
+        Text("REVIEW / \(tracks.count)")
+          .font(.system(size: 11, weight: .bold, design: .monospaced))
+      }
+
+      Text("Ready to cut?")
+        .font(.system(size: 38, weight: .black, design: .rounded))
+        .tracking(-1.5)
+      Text("Nothing has changed in Spotify yet. These are the songs staged for removal.")
+        .font(.system(size: 15, weight: .medium, design: .rounded))
+        .foregroundStyle(WavepointTheme.paper.opacity(0.68))
+
+      ScrollView {
+        LazyVStack(spacing: 10) {
+          ForEach(tracks) { track in
+            HStack(spacing: 12) {
+              AsyncImage(url: track.artworkURL) { image in
+                image.resizable().scaledToFill()
+              } placeholder: {
+                WavepointTheme.midSurface
+              }
+              .frame(width: 58, height: 58)
+              .clipped()
+
+              VStack(alignment: .leading, spacing: 4) {
+                Text(track.name)
+                  .font(.system(size: 15, weight: .bold, design: .rounded))
+                  .lineLimit(1)
+                Text(track.artistLine)
+                  .font(.system(size: 12, weight: .medium, design: .rounded))
+                  .foregroundStyle(WavepointTheme.mutedInk)
+                  .lineLimit(1)
+              }
+              Spacer()
+              Image(systemName: "xmark")
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(WavepointTheme.remove)
+            }
+            .padding(10)
+            .foregroundStyle(WavepointTheme.ink)
+            .background(WavepointTheme.raisedPaper)
+            .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.panelRadius))
+          }
+        }
+      }
+
+      Button(action: onConfirm) {
+        Text("REMOVE \(tracks.count) FROM LIKED SONGS")
+          .font(.system(size: 12, weight: .black, design: .monospaced))
+          .frame(maxWidth: .infinity, minHeight: 56)
+          .foregroundStyle(WavepointTheme.ink)
+          .background(WavepointTheme.remove)
+          .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+          .overlay {
+            RoundedRectangle(cornerRadius: WavepointTheme.controlRadius)
+              .stroke(WavepointTheme.ink, lineWidth: 2)
+          }
+      }
+      .buttonStyle(PressOffsetButtonStyle())
+      .accessibilityLabel("Confirm removal of \(tracks.count) songs from Liked Songs")
+    }
+    .padding(20)
+    .foregroundStyle(WavepointTheme.paper)
+    .accessibilityIdentifier("cleanup-review")
+  }
+}

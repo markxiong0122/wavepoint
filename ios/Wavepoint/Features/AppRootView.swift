@@ -31,9 +31,11 @@ enum AppRootScreen: Equatable {
 
 struct AppRootView: View {
   @State private var model: AppSessionModel
+  @State private var cleanupModel: CleanupSessionModel
 
-  init(model: AppSessionModel) {
+  init(model: AppSessionModel, cleanupModel: CleanupSessionModel) {
     _model = State(initialValue: model)
+    _cleanupModel = State(initialValue: cleanupModel)
   }
 
   var body: some View {
@@ -46,7 +48,8 @@ struct AppRootView: View {
           Task { await model.signIn() }
         }
       case .cleanup:
-        CleanupPlaceholderView {
+        CleanupHomeView(model: cleanupModel) {
+          cleanupModel.reset()
           Task { await model.signOut() }
         }
       case let .error(message):
