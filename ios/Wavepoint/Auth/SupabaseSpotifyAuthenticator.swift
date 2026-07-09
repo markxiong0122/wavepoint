@@ -22,6 +22,7 @@ struct SpotifyAuthorizationRequest: Equatable, Sendable {
       "user-read-email",
       "user-library-read",
       "user-library-modify",
+      "user-read-recently-played",
       "app-remote-control",
     ].joined(separator: " ")
   }
