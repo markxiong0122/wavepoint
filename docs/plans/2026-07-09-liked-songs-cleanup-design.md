@@ -22,7 +22,7 @@ This would enable cross-device recovery and analytics, but it adds schema, row-l
 
 ## Architecture
 
-The app stays client-first. `SpotifyWebAPIClient` owns authenticated Spotify HTTP calls. `CleanupDeckBuilder` ranks liked songs using evidence Spotify actually exposes: saved age and whether a track appears in recently played history. `CleanupSessionModel` owns one observable state machine for loading, swiping, undo, review, batch removal, completion, and recoverable errors.
+The app stays client-first. `SpotifyWebAPIClient` owns authenticated Spotify HTTP calls. `CleanupDeckBuilder` creates a weighted-random deck using evidence Spotify actually exposes: saved age and whether a track appears in recently played history. Older tracks and tracks outside recent rotation receive higher selection odds, while the random shuffle keeps repeat sessions from feeling like a chronological archive. `CleanupSessionModel` owns one observable state machine for loading, swiping, undo, review, batch removal, completion, and recoverable errors.
 
 The root session model supplies the Spotify access token from Keychain after Supabase authentication. No Spotify client secret or Supabase service-role key exists in the app. The first version holds decisions in memory; leaving the session before confirmation discards the staged batch without changing Spotify.
 
@@ -30,8 +30,8 @@ The root session model supplies the Spotify access token from Keychain after Sup
 
 1. Fetch all liked tracks with `GET /v1/me/tracks`, following pagination.
 2. Fetch recent history with `GET /v1/me/player/recently-played`.
-3. Exclude tracks present in recent history from the strongest “buried” tier.
-4. Rank older saved tracks ahead of newer tracks, with deterministic tie-breaking.
+3. Reduce the selection weight for tracks present in recent history.
+4. Apply a seeded weighted shuffle so older saves are more likely, not guaranteed, to appear earlier.
 5. Present up to 50 tracks per cleanup session so the task feels finite.
 6. Keep and remove gestures append a local decision and reveal the next card.
 7. Undo removes the most recent decision and restores its card.

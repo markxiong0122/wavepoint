@@ -25,7 +25,7 @@ Define an iOS 17 application target with bundle ID `ai.mapier.swipe`, a unit-tes
 
 **Step 2: Add non-secret configuration**
 
-Set `SUPABASE_URL=https://pvlykxebusgsgrtrkrqh.supabase.co`, `SPOTIFY_CLIENT_ID=6603fd9c06fe40bd823ecacd102c96ed`, and `OAUTH_CALLBACK_URL=ai.mapier.swipe://login-callback`. Leave `SUPABASE_PUBLISHABLE_KEY` as a visible development placeholder until MCP exposes the project key after tool reload. Never add a secret/service-role key.
+Set `SUPABASE_URL=https://pvlykxebusgsgrtrkrqh.supabase.co` and `OAUTH_CALLBACK_URL=ai.mapier.swipe://login-callback`. Leave `SUPABASE_PUBLISHABLE_KEY` as a visible development placeholder until the project key is available. Never add a secret/service-role key.
 
 **Step 3: Generate and build the empty app**
 
@@ -144,7 +144,7 @@ Assert that the Spotify authorization request uses:
 ```text
 provider: spotify
 redirect: ai.mapier.swipe://login-callback
-scopes: user-read-email user-library-read user-library-modify app-remote-control
+scopes: user-read-email user-library-read user-library-modify user-read-recently-played
 ```
 
 **Step 2: Run the focused test and verify RED**
@@ -231,4 +231,3 @@ Use the project-scoped MCP after tool reload to confirm project URL and zero une
 **Step 3: Physical-device checkpoint**
 
 Open `ios/Wavepoint.xcodeproj` in Xcode. Real Spotify login is complete only after an iPhone receives the Supabase callback and the app captures a non-empty provider access token. App Remote playback is a later slice.
-

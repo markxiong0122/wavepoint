@@ -14,7 +14,7 @@ enum AppRootScreen: Equatable {
       self = .login
     case .signedIn:
       self = .cleanup
-    case let .failed(message):
+    case .failed(let message):
       self = .error(message)
     }
   }
@@ -52,7 +52,7 @@ struct AppRootView: View {
           cleanupModel.reset()
           Task { await model.signOut() }
         }
-      case let .error(message):
+      case .error(let message):
         authenticationError(message)
       }
     }

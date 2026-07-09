@@ -10,15 +10,25 @@ struct WavepointApp: App {
     do {
       let configuration = try AppConfiguration.load()
       let tokenStore = KeychainSpotifyTokenStore()
+      let supabaseClient = SupabaseSpotifyAuthenticator.makeClient(
+        configuration: configuration
+      )
       sessionModel = AppSessionModel(
-        authenticator: try SupabaseSpotifyAuthenticator(configuration: configuration),
+        authenticator: try SupabaseSpotifyAuthenticator(
+          client: supabaseClient,
+          callbackURL: configuration.callbackURL
+        ),
         tokenStore: tokenStore
       )
-      let spotifyClient = SpotifyWebAPIClient {
-        guard let accessToken = try tokenStore.load()?.accessToken else {
-          throw SpotifyWebAPIError.authorizationExpired
-        }
-        return accessToken
+      let credentialProvider = SpotifyCredentialProvider(
+        tokenStore: tokenStore,
+        refreshService: SupabaseSpotifyTokenRefreshService(
+          client: supabaseClient,
+          configuration: configuration
+        )
+      )
+      let spotifyClient = SpotifyWebAPIClient { forceRefresh in
+        try await credentialProvider.accessToken(forceRefresh: forceRefresh)
       }
       cleanupModel = CleanupSessionModel(
         service: spotifyClient

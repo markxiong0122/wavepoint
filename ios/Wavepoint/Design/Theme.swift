@@ -67,6 +67,9 @@ struct PressOffsetButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .offset(y: configuration.isPressed ? 3 : 0)
-      .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+      .animation(
+        .easeOut(duration: configuration.isPressed ? 0.12 : 0.07),
+        value: configuration.isPressed
+      )
   }
 }

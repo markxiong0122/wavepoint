@@ -142,7 +142,7 @@ Motion must make the next decision available quickly. It must never become a rew
 
 - Use `added_at` for save age.
 - Describe recent evidence as “outside recent rotation”; do not claim an exact last-listened date or play count.
-- Use the Web Playback SDK as the primary production audio path. Treat deprecated nullable preview URLs as a fallback only.
+- Play a 15-second segment when Spotify supplies a preview URL. Treat deprecated nullable preview URLs as optional and always provide Open in Spotify.
 - Require an initiating user gesture before expecting continuous segment playback.
 - Stage and batch library removals through the current generic library endpoint.
 - Preserve artwork and include required Spotify attribution and links in production.

@@ -55,13 +55,13 @@ struct CleanupHomeView: View {
         )
       case .committing:
         committingView
-      case let .complete(summary):
+      case .complete(let summary):
         CleanupCompleteView(
           summary: summary,
           onStartAgain: { Task { await model.load() } },
           onSignOut: onSignOut
         )
-      case let .failed(message):
+      case .failed(let message):
         errorView(message)
       }
     }

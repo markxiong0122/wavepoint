@@ -23,7 +23,6 @@ struct SpotifyAuthorizationRequest: Equatable, Sendable {
       "user-library-read",
       "user-library-modify",
       "user-read-recently-played",
-      "app-remote-control",
     ].joined(separator: " ")
   }
 }
@@ -36,9 +35,13 @@ struct SupabaseSpotifyAuthenticator: SpotifyAuthenticating {
   private let client: SupabaseClient
   private let request: SpotifyAuthorizationRequest
 
-  init(configuration: AppConfiguration) throws {
-    request = try SpotifyAuthorizationRequest(callbackURL: configuration.callbackURL)
-    client = SupabaseClient(
+  init(client: SupabaseClient, callbackURL: URL) throws {
+    self.client = client
+    request = try SpotifyAuthorizationRequest(callbackURL: callbackURL)
+  }
+
+  static func makeClient(configuration: AppConfiguration) -> SupabaseClient {
+    SupabaseClient(
       supabaseURL: configuration.supabaseURL,
       supabaseKey: configuration.supabasePublishableKey,
       options: SupabaseClientOptions(
@@ -71,8 +74,8 @@ struct SupabaseSpotifyAuthenticator: SpotifyAuthenticating {
   }
 }
 
-private extension SpotifyAuthSession {
-  init(session: Session) {
+extension SpotifyAuthSession {
+  fileprivate init(session: Session) {
     let tokens = session.providerToken.map {
       SpotifyProviderTokens(
         accessToken: $0,

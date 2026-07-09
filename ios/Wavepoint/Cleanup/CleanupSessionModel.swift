@@ -69,7 +69,8 @@ final class CleanupSessionModel {
         recentTrackIDs: recentIDs
       )
       decisions = []
-      state = deck.isEmpty
+      state =
+        deck.isEmpty
         ? .complete(CleanupSummary(decisionCount: 0, removedCount: 0))
         : .deciding
     } catch {

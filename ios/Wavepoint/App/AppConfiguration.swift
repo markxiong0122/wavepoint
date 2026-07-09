@@ -3,7 +3,6 @@ import Foundation
 struct AppConfiguration: Equatable {
   let supabaseURL: URL
   let supabasePublishableKey: String
-  let spotifyClientID: String
   let callbackURL: URL
 
   static func load(from bundle: Bundle = .main) throws -> AppConfiguration {
@@ -11,9 +10,6 @@ struct AppConfiguration: Equatable {
       supabaseURL: try bundle.requiredURL(forInfoDictionaryKey: "SUPABASE_URL"),
       supabasePublishableKey: try bundle.requiredString(
         forInfoDictionaryKey: "SUPABASE_PUBLISHABLE_KEY"
-      ),
-      spotifyClientID: try bundle.requiredString(
-        forInfoDictionaryKey: "SPOTIFY_CLIENT_ID"
       ),
       callbackURL: try bundle.requiredURL(forInfoDictionaryKey: "OAUTH_CALLBACK_URL")
     )
@@ -24,8 +20,8 @@ struct AppConfiguration: Equatable {
   }
 }
 
-private extension Bundle {
-  func requiredString(forInfoDictionaryKey key: String) throws -> String {
+extension Bundle {
+  fileprivate func requiredString(forInfoDictionaryKey key: String) throws -> String {
     guard
       let value = object(forInfoDictionaryKey: key) as? String,
       !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -35,7 +31,7 @@ private extension Bundle {
     return value
   }
 
-  func requiredURL(forInfoDictionaryKey key: String) throws -> URL {
+  fileprivate func requiredURL(forInfoDictionaryKey key: String) throws -> URL {
     let value = try requiredString(forInfoDictionaryKey: key)
     guard let url = URL(string: value), url.scheme != nil else {
       throw AppConfigurationError.invalidURL(key)
@@ -51,11 +47,11 @@ enum AppConfigurationError: LocalizedError, Equatable {
 
   var errorDescription: String? {
     switch self {
-    case let .missingValue(key):
+    case .missingValue(let key):
       "Missing app configuration value: \(key)."
-    case let .invalidURL(key):
+    case .invalidURL(let key):
       "Invalid URL in app configuration: \(key)."
-    case let .placeholderValue(key):
+    case .placeholderValue(let key):
       "Add the public \(key) value in Config/Shared.xcconfig."
     }
   }

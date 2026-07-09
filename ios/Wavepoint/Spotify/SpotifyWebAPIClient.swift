@@ -33,19 +33,20 @@ protocol SpotifyLibraryServing: Sendable {
 
 struct SpotifyWebAPIClient: SpotifyLibraryServing {
   private let transport: any SpotifyHTTPTransport
-  private let accessToken: @Sendable () throws -> String
+  private let accessToken: @Sendable (Bool) async throws -> String
   private let baseURL = URL(string: "https://api.spotify.com/v1")!
 
   init(
     transport: any SpotifyHTTPTransport = URLSessionSpotifyTransport(),
-    accessToken: @escaping @Sendable () throws -> String
+    accessToken: @escaping @Sendable (Bool) async throws -> String
   ) {
     self.transport = transport
     self.accessToken = accessToken
   }
 
   func fetchSavedTracks() async throws -> [SpotifyTrack] {
-    var nextURL: URL? = baseURL
+    var nextURL: URL? =
+      baseURL
       .appending(path: "me/tracks")
       .appending(queryItems: [URLQueryItem(name: "limit", value: "50")])
     var tracks: [SpotifyTrack] = []
@@ -61,7 +62,8 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
   }
 
   func fetchRecentlyPlayedTrackIDs() async throws -> Set<String> {
-    let url = baseURL
+    let url =
+      baseURL
       .appending(path: "me/player/recently-played")
       .appending(queryItems: [URLQueryItem(name: "limit", value: "50")])
     let response = try await sendAuthorizedRequest(to: url)
@@ -76,15 +78,15 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
     for startIndex in stride(from: 0, to: uris.count, by: 40) {
       let endIndex = min(startIndex + 40, uris.count)
       let chunk = Array(uris[startIndex..<endIndex])
-      var request = try authorizedRequest(
-        to: baseURL.appending(path: "me/library"),
-        method: "DELETE"
-      )
-      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      request.httpBody = try JSONEncoder().encode(RemovalBody(uris: chunk))
+      let body = try JSONEncoder().encode(RemovalBody(uris: chunk))
 
       do {
-        _ = try await sendValidated(request)
+        _ = try await sendAuthorizedRequest(
+          to: baseURL.appending(path: "me/library"),
+          method: "DELETE",
+          body: body,
+          contentType: "application/json"
+        )
         removedCount += chunk.count
       } catch {
         guard removedCount > 0 else { throw error }
@@ -98,25 +100,60 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
     return removedCount
   }
 
-  private func sendAuthorizedRequest(to url: URL) async throws -> SpotifyHTTPResponse {
-    try await sendValidated(authorizedRequest(to: url))
+  private func sendAuthorizedRequest(
+    to url: URL,
+    method: String = "GET",
+    body: Data? = nil,
+    contentType: String? = nil
+  ) async throws -> SpotifyHTTPResponse {
+    do {
+      return try await sendValidated(
+        authorizedRequest(
+          to: url,
+          method: method,
+          body: body,
+          contentType: contentType,
+          forceRefresh: false
+        )
+      )
+    } catch SpotifyWebAPIError.authorizationExpired {
+      return try await sendValidated(
+        authorizedRequest(
+          to: url,
+          method: method,
+          body: body,
+          contentType: contentType,
+          forceRefresh: true
+        )
+      )
+    }
   }
 
   private func authorizedRequest(
     to url: URL,
-    method: String = "GET"
-  ) throws -> URLRequest {
+    method: String,
+    body: Data?,
+    contentType: String?,
+    forceRefresh: Bool
+  ) async throws -> URLRequest {
     var request = URLRequest(url: url)
     request.httpMethod = method
-    request.setValue("Bearer \(try accessToken())", forHTTPHeaderField: "Authorization")
+    request.httpBody = body
+    request.setValue(
+      "Bearer \(try await accessToken(forceRefresh))",
+      forHTTPHeaderField: "Authorization"
+    )
+    if let contentType {
+      request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+    }
     return request
   }
 
   private func sendValidated(_ request: URLRequest) async throws -> SpotifyHTTPResponse {
     var response = try await transport.send(request)
     if response.response.statusCode == 429,
-       let value = response.response.value(forHTTPHeaderField: "Retry-After"),
-       let delay = Double(value)
+      let value = response.response.value(forHTTPHeaderField: "Retry-After"),
+      let delay = Double(value)
     {
       try await Task.sleep(for: .seconds(delay))
       response = try await transport.send(request)
@@ -162,9 +199,9 @@ enum SpotifyWebAPIError: LocalizedError, Equatable {
       "Spotify returned an unreadable response. Please try again."
     case .rateLimited:
       "Spotify is receiving too many requests. Please wait and retry."
-    case let .httpStatus(status):
+    case .httpStatus(let status):
       "Spotify could not complete the request (\(status))."
-    case let .partialRemoval(committedCount, remainingCount):
+    case .partialRemoval(let committedCount, let remainingCount):
       "Removed \(committedCount) songs, but \(remainingCount) still need to be retried."
     }
   }

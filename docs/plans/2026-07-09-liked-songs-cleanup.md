@@ -19,7 +19,7 @@
 
 **Step 1: Write failing ranking tests**
 
-Create tracks with controlled `addedAt` dates and recent-track IDs. Assert that tracks outside recent rotation come first, older saves precede newer saves within a tier, ties use the track ID, and results are capped at 50.
+Create tracks with controlled `addedAt` dates and recent-track IDs. Assert that older and outside-rotation tracks receive higher weights, the same seed reproduces an ordering, different seeds vary it, and results are capped at 50.
 
 **Step 2: Run the test and verify RED**
 
@@ -34,7 +34,7 @@ Expected: compile failure because `SpotifyTrack` and `CleanupDeckBuilder` do not
 
 **Step 3: Implement the minimum pure models and ranking**
 
-Define `SpotifyTrack` with ID, URI, title, artist names, artwork URL, optional preview URL, Spotify URL, duration, and `addedAt`. Rank using a tuple: recent-presence last, earlier `addedAt` first, stable ID last. Return at most 50.
+Define `SpotifyTrack` with ID, URI, title, artist names, artwork URL, optional preview URL, Spotify URL, duration, and `addedAt`. Use a seeded weighted shuffle where saved age raises the weight and recent presence reduces it. Return at most 50.
 
 **Step 4: Run the focused test and verify GREEN**
 

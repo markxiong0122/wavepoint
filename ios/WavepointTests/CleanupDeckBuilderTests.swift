@@ -2,18 +2,36 @@ import XCTest
 @testable import Wavepoint
 
 final class CleanupDeckBuilderTests: XCTestCase {
-  func testRanksOutsideRecentRotationThenOldestWithStableTies() {
-    let oldest = track(id: "old", addedAt: date("2018-01-01T00:00:00Z"))
-    let tiedB = track(id: "b", addedAt: date("2020-01-01T00:00:00Z"))
-    let tiedA = track(id: "a", addedAt: date("2020-01-01T00:00:00Z"))
-    let recent = track(id: "recent", addedAt: date("2010-01-01T00:00:00Z"))
+  func testOlderAndOutsideRotationTracksReceiveHigherSelectionWeights() {
+    let now = date("2026-01-01T00:00:00Z")
+    let builder = CleanupDeckBuilder(referenceDate: now)
+    let old = track(id: "old", addedAt: date("2018-01-01T00:00:00Z"))
+    let new = track(id: "new", addedAt: date("2025-12-01T00:00:00Z"))
 
-    let deck = CleanupDeckBuilder().build(
-      from: [recent, tiedB, oldest, tiedA],
-      recentTrackIDs: ["recent"]
-    )
+    let oldWeight = builder.selectionWeight(for: old, recentTrackIDs: [])
+    let newWeight = builder.selectionWeight(for: new, recentTrackIDs: [])
+    let recentOldWeight = builder.selectionWeight(for: old, recentTrackIDs: ["old"])
 
-    XCTAssertEqual(deck.map(\.id), ["old", "a", "b", "recent"])
+    XCTAssertGreaterThan(oldWeight, newWeight)
+    XCTAssertLessThan(recentOldWeight, oldWeight)
+  }
+
+  func testSeedProducesARepeatableWeightedShuffle() {
+    let tracks = (0..<12).map {
+      track(
+        id: String(format: "%03d", $0),
+        addedAt: Date(timeIntervalSince1970: TimeInterval($0 * 1_000))
+      )
+    }
+    let builder = CleanupDeckBuilder(referenceDate: date("2026-01-01T00:00:00Z"))
+
+    let first = builder.build(from: tracks, recentTrackIDs: [], seed: 42)
+    let second = builder.build(from: tracks, recentTrackIDs: [], seed: 42)
+    let different = builder.build(from: tracks, recentTrackIDs: [], seed: 7)
+
+    XCTAssertEqual(first.map(\.id), second.map(\.id))
+    XCTAssertNotEqual(first.map(\.id), different.map(\.id))
+    XCTAssertEqual(Set(first.map(\.id)), Set(tracks.map(\.id)))
   }
 
   func testCapsADeckAtFiftySongs() {
@@ -21,7 +39,7 @@ final class CleanupDeckBuilderTests: XCTestCase {
       track(id: String(format: "%03d", $0), addedAt: Date(timeIntervalSince1970: 0))
     }
 
-    let deck = CleanupDeckBuilder().build(from: tracks, recentTrackIDs: [])
+    let deck = CleanupDeckBuilder().build(from: tracks, recentTrackIDs: [], seed: 1)
 
     XCTAssertEqual(deck.count, 50)
   }

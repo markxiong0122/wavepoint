@@ -10,6 +10,7 @@ struct TrackCardView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var dragOffset: CGSize = .zero
   @State private var previewPlayer = TrackPreviewPlayer()
+  @State private var isCommittingDecision = false
 
   var body: some View {
     GeometryReader { proxy in
@@ -20,7 +21,6 @@ struct TrackCardView: View {
         .offset(dragOffset)
         .rotationEffect(.degrees(reduceMotion ? 0 : rotation(in: proxy.size.width)))
         .gesture(dragGesture(cardWidth: proxy.size.width))
-        .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.88), value: dragOffset)
     }
     .frame(maxHeight: .infinity)
     .onAppear {
@@ -86,7 +86,7 @@ struct TrackCardView: View {
     if let url = track.artworkURL {
       AsyncImage(url: url) { phase in
         switch phase {
-        case let .success(image):
+        case .success(let image):
           image.resizable().scaledToFit()
         case .failure:
           artworkPlaceholder
@@ -145,7 +145,6 @@ struct TrackCardView: View {
     switch previewPlayer.state {
     case .playing: "pause.fill"
     case .unavailable: "waveform.slash"
-    case .failed: "exclamationmark.triangle.fill"
     case .ready, .paused: "play.fill"
     }
   }
@@ -156,7 +155,6 @@ struct TrackCardView: View {
     case .ready: "PLAY 15S PREVIEW"
     case .playing: "PAUSE PREVIEW"
     case .paused: "RESUME PREVIEW"
-    case .failed: "PREVIEW FAILED"
     }
   }
 
@@ -183,21 +181,42 @@ struct TrackCardView: View {
   private func dragGesture(cardWidth: CGFloat) -> some Gesture {
     DragGesture(minimumDistance: 8)
       .onChanged { value in
+        guard !isCommittingDecision else { return }
         dragOffset = value.translation
       }
       .onEnded { value in
+        guard !isCommittingDecision else { return }
         let threshold = cardWidth * 0.28
         guard abs(value.translation.width) >= threshold else {
+          withAnimation(.interactiveSpring(response: 0.24, dampingFraction: 0.88)) {
+            dragOffset = .zero
+          }
+          return
+        }
+
+        let removesTrack = value.translation.width < 0
+        guard !reduceMotion else {
+          if removesTrack {
+            onRemove()
+          } else {
+            onKeep()
+          }
           dragOffset = .zero
           return
         }
 
-        if value.translation.width < 0 {
-          onRemove()
-        } else {
-          onKeep()
+        isCommittingDecision = true
+        withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.18)) {
+          dragOffset.width = removesTrack ? -(cardWidth + 120) : cardWidth + 120
         }
-        dragOffset = .zero
+        Task { @MainActor in
+          try? await Task.sleep(for: .milliseconds(150))
+          if removesTrack {
+            onRemove()
+          } else {
+            onKeep()
+          }
+        }
       }
   }
 }

@@ -8,7 +8,6 @@ final class ScaffoldTests: XCTestCase {
     let configuration = AppConfiguration(
       supabaseURL: url,
       supabasePublishableKey: "publishable",
-      spotifyClientID: "client",
       callbackURL: callbackURL
     )
 

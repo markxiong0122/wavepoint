@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+
 @testable import Wavepoint
 
 @MainActor
@@ -13,7 +14,7 @@ final class CleanupSessionModelTests: XCTestCase {
     await model.load()
 
     XCTAssertEqual(model.state, .deciding)
-    XCTAssertEqual(model.currentTrack?.id, "old")
+    XCTAssertTrue(["old", "recent"].contains(model.currentTrack?.id))
     XCTAssertEqual(model.totalCount, 2)
   }
 
@@ -24,18 +25,20 @@ final class CleanupSessionModelTests: XCTestCase {
       service: FakeSpotifyLibraryService(tracks: [first, second])
     )
     await model.load()
+    let firstDisplayedTrack = model.currentTrack
 
     model.keepCurrentTrack()
-    XCTAssertEqual(model.currentTrack?.id, "second")
+    let secondDisplayedTrack = model.currentTrack
+    XCTAssertNotEqual(secondDisplayedTrack, firstDisplayedTrack)
     model.removeCurrentTrack()
     XCTAssertEqual(model.state, .reviewing)
-    XCTAssertEqual(model.stagedRemovals.map(\.id), ["second"])
+    XCTAssertEqual(model.stagedRemovals, [secondDisplayedTrack].compactMap { $0 })
 
     model.cancelReview()
     model.undo()
 
     XCTAssertEqual(model.state, .deciding)
-    XCTAssertEqual(model.currentTrack?.id, "second")
+    XCTAssertEqual(model.currentTrack, secondDisplayedTrack)
     XCTAssertTrue(model.stagedRemovals.isEmpty)
     XCTAssertEqual(model.completedCount, 1)
   }
@@ -47,12 +50,13 @@ final class CleanupSessionModelTests: XCTestCase {
     ]
     let model = CleanupSessionModel(service: FakeSpotifyLibraryService(tracks: tracks))
     await model.load()
+    let displayedTrack = model.currentTrack
 
     model.removeCurrentTrack()
     model.beginReview()
 
     XCTAssertEqual(model.state, .reviewing)
-    XCTAssertEqual(model.stagedRemovals.map(\.id), ["remove"])
+    XCTAssertEqual(model.stagedRemovals, [displayedTrack].compactMap { $0 })
   }
 
   func testConfirmCommitsStagedURIsAndCompletes() async {
@@ -85,7 +89,7 @@ final class CleanupSessionModelTests: XCTestCase {
 
     await model.load()
 
-    guard case let .failed(message) = model.state else {
+    guard case .failed(let message) = model.state else {
       return XCTFail("Expected failed state")
     }
     XCTAssertTrue(message.contains("too many requests"))

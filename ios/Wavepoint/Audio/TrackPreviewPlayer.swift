@@ -7,7 +7,6 @@ enum TrackPreviewState: Equatable, Sendable {
   case ready
   case playing
   case paused
-  case failed(String)
 }
 
 @MainActor
@@ -80,7 +79,7 @@ final class TrackPreviewPlayer {
       engine.resume()
       state = .playing
       scheduleSegmentEnd()
-    case .unavailable, .failed:
+    case .unavailable:
       break
     }
   }

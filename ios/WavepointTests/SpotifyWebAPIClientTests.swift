@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+
 @testable import Wavepoint
 
 final class SpotifyWebAPIClientTests: XCTestCase {
@@ -14,7 +15,7 @@ final class SpotifyWebAPIClientTests: XCTestCase {
       ),
       response(status: 200, body: savedTracksPage(id: "two", next: nil)),
     ])
-    let client = SpotifyWebAPIClient(transport: transport) { "spotify-access" }
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "spotify-access" }
 
     let tracks = try await client.fetchSavedTracks()
     let requests = await transport.requests
@@ -22,7 +23,8 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     XCTAssertEqual(tracks.map(\.id), ["one", "two"])
     XCTAssertEqual(requests.count, 2)
     XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer spotify-access")
-    XCTAssertEqual(requests[1].url?.absoluteString, "https://api.spotify.com/v1/me/tracks?offset=1&limit=50")
+    XCTAssertEqual(
+      requests[1].url?.absoluteString, "https://api.spotify.com/v1/me/tracks?offset=1&limit=50")
   }
 
   func testFetchRecentlyPlayedReturnsTrackIDs() async throws {
@@ -30,14 +32,14 @@ final class SpotifyWebAPIClientTests: XCTestCase {
       response(
         status: 200,
         body: """
-        {"items":[
-          {"track":\(trackJSON(id: "recent-1")),"played_at":"2026-07-09T12:00:00Z"},
-          {"track":\(trackJSON(id: "recent-2")),"played_at":"2026-07-09T11:00:00Z"}
-        ],"next":null}
-        """
+          {"items":[
+            {"track":\(trackJSON(id: "recent-1")),"played_at":"2026-07-09T12:00:00Z"},
+            {"track":\(trackJSON(id: "recent-2")),"played_at":"2026-07-09T11:00:00Z"}
+          ],"next":null}
+          """
       )
     ])
-    let client = SpotifyWebAPIClient(transport: transport) { "token" }
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
 
     let ids = try await client.fetchRecentlyPlayedTrackIDs()
 
@@ -46,7 +48,10 @@ final class SpotifyWebAPIClientTests: XCTestCase {
 
   func testUnauthorizedResponseMapsToAuthorizationExpired() async {
     let transport = RecordingSpotifyTransport(responses: [response(status: 401, body: "{}")])
-    let client = SpotifyWebAPIClient(transport: transport) { "expired" }
+    let client = SpotifyWebAPIClient(transport: transport) { forceRefresh in
+      if forceRefresh { throw SpotifyWebAPIError.authorizationExpired }
+      return "expired"
+    }
 
     do {
       _ = try await client.fetchSavedTracks()
@@ -56,12 +61,34 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     }
   }
 
+  func testUnauthorizedResponseRefreshesTokenAndRetriesOnce() async throws {
+    let transport = RecordingSpotifyTransport(responses: [
+      response(status: 401, body: "{}"),
+      response(status: 200, body: savedTracksPage(id: "retried", next: nil)),
+    ])
+    let provider = RecordingAccessTokenProvider()
+    let client = SpotifyWebAPIClient(transport: transport) { forceRefresh in
+      await provider.token(forceRefresh: forceRefresh)
+    }
+
+    let tracks = try await client.fetchSavedTracks()
+    let requests = await transport.requests
+    let calls = await provider.calls
+
+    XCTAssertEqual(tracks.map(\.id), ["retried"])
+    XCTAssertEqual(calls, [false, true])
+    XCTAssertEqual(
+      requests.map { $0.value(forHTTPHeaderField: "Authorization") },
+      ["Bearer expired", "Bearer refreshed"]
+    )
+  }
+
   func testRemovalChunksFortyOneURIsIntoFortyAndOne() async throws {
     let transport = RecordingSpotifyTransport(responses: [
       response(status: 200, body: "{}"),
       response(status: 200, body: "{}"),
     ])
-    let client = SpotifyWebAPIClient(transport: transport) { "token" }
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
     let uris = (0..<41).map { "spotify:track:\($0)" }
 
     let removedCount = try await client.removeFromLibrary(uris: uris)
@@ -79,7 +106,7 @@ final class SpotifyWebAPIClientTests: XCTestCase {
 
   func testRemovingNothingPerformsNoRequest() async throws {
     let transport = RecordingSpotifyTransport(responses: [])
-    let client = SpotifyWebAPIClient(transport: transport) { "token" }
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
 
     let removedCount = try await client.removeFromLibrary(uris: [])
 
@@ -91,8 +118,8 @@ final class SpotifyWebAPIClientTests: XCTestCase {
   private func savedTracksPage(id: String, next: String?) -> String {
     let nextValue = next.map { "\"\($0)\"" } ?? "null"
     return """
-    {"items":[{"added_at":"2020-01-01T00:00:00Z","track":\(trackJSON(id: id))}],"next":\(nextValue)}
-    """
+      {"items":[{"added_at":"2020-01-01T00:00:00Z","track":\(trackJSON(id: id))}],"next":\(nextValue)}
+      """
   }
 
   private func trackJSON(id: String) -> String {
@@ -111,6 +138,15 @@ final class SpotifyWebAPIClientTests: XCTestCase {
         headerFields: nil
       )!
     )
+  }
+}
+
+private actor RecordingAccessTokenProvider {
+  private(set) var calls: [Bool] = []
+
+  func token(forceRefresh: Bool) -> String {
+    calls.append(forceRefresh)
+    return forceRefresh ? "refreshed" : "expired"
   }
 }
 
