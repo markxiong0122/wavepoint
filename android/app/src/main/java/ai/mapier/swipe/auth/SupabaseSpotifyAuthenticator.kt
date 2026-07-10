@@ -5,6 +5,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.ExternalAuthAction
 import io.github.jan.supabase.auth.FlowType
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.Spotify
@@ -41,6 +42,10 @@ class SupabaseSpotifyAuthenticator(
 
   override suspend fun signOut() {
     client.auth.signOut()
+  }
+
+  override suspend fun clearLocalSession() {
+    client.auth.signOut(SignOutScope.LOCAL)
   }
 
   private fun UserSession.toDomain() = SpotifyAuthSession(

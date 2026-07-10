@@ -1,5 +1,10 @@
 package ai.mapier.swipe.auth
 
+import ai.mapier.swipe.spotify.SpotifyAccountEligibility
+import ai.mapier.swipe.spotify.SpotifyAccountEligibilityChecker
+import ai.mapier.swipe.spotify.SpotifyWebApiErrorKind
+import ai.mapier.swipe.spotify.SpotifyWebApiException
+
 data class SpotifyAuthSession(
   val supabaseAccessToken: String,
   val providerTokens: SpotifyProviderTokens?,
@@ -9,6 +14,7 @@ interface SpotifyAuthenticator {
   suspend fun restoreSession(): SpotifyAuthSession?
   suspend fun startSignIn()
   suspend fun signOut()
+  suspend fun clearLocalSession()
 }
 
 enum class AppSessionState {
@@ -16,12 +22,16 @@ enum class AppSessionState {
   SIGNED_OUT,
   AUTHORIZING,
   SIGNED_IN,
+  SPOTIFY_PREMIUM_REQUIRED,
+  SPOTIFY_RECONNECT_REQUIRED,
+  SPOTIFY_ELIGIBILITY_UNAVAILABLE,
   FAILED,
 }
 
 class AppSession(
   private val authenticator: SpotifyAuthenticator,
   private val tokenStore: SpotifyTokenStoring,
+  private val eligibilityChecker: SpotifyAccountEligibilityChecker? = null,
 ) {
   var state: AppSessionState = AppSessionState.RESTORING
     private set
@@ -38,10 +48,10 @@ class AppSession(
         return
       }
       session.providerTokens?.let(tokenStore::save)
-      state = if (tokenStore.load() != null) {
-        AppSessionState.SIGNED_IN
+      if (tokenStore.load() != null) {
+        verifyEligibility()
       } else {
-        AppSessionState.SIGNED_OUT
+        state = AppSessionState.SIGNED_OUT
       }
     }.onFailure(::fail)
   }
@@ -52,7 +62,7 @@ class AppSession(
     runCatching { authenticator.startSignIn() }.onFailure(::fail)
   }
 
-  fun accept(session: SpotifyAuthSession) {
+  suspend fun accept(session: SpotifyAuthSession) {
     val tokens = session.providerTokens
     if (tokens == null) {
       fail(IllegalStateException("Spotify did not return provider credentials."))
@@ -60,7 +70,7 @@ class AppSession(
     }
     tokenStore.save(tokens)
     errorMessage = null
-    state = AppSessionState.SIGNED_IN
+    verifyEligibility()
   }
 
   fun reject(error: Throwable) {
@@ -75,6 +85,45 @@ class AppSession(
         state = AppSessionState.SIGNED_OUT
       }
       .onFailure(::fail)
+  }
+
+  suspend fun retryEligibility() {
+    if (tokenStore.load() == null) {
+      state = AppSessionState.SIGNED_OUT
+      return
+    }
+    verifyEligibility()
+  }
+
+  private suspend fun verifyEligibility() {
+    val checker = eligibilityChecker
+    if (checker == null) {
+      state = AppSessionState.SIGNED_IN
+      return
+    }
+    try {
+      when (checker.fetchAccountEligibility()) {
+        SpotifyAccountEligibility.PREMIUM -> state = AppSessionState.SIGNED_IN
+        SpotifyAccountEligibility.FREE -> {
+          authenticator.clearLocalSession()
+          tokenStore.clear()
+          state = AppSessionState.SPOTIFY_PREMIUM_REQUIRED
+        }
+        SpotifyAccountEligibility.UNVERIFIABLE ->
+          state = AppSessionState.SPOTIFY_ELIGIBILITY_UNAVAILABLE
+      }
+    } catch (error: SpotifyWebApiException) {
+      state = if (
+        error.kind == SpotifyWebApiErrorKind.ACCOUNT_ELIGIBILITY_FORBIDDEN ||
+        error.kind == SpotifyWebApiErrorKind.AUTHORIZATION_EXPIRED
+      ) {
+        AppSessionState.SPOTIFY_RECONNECT_REQUIRED
+      } else {
+        AppSessionState.SPOTIFY_ELIGIBILITY_UNAVAILABLE
+      }
+    } catch (_: Throwable) {
+      state = AppSessionState.SPOTIFY_ELIGIBILITY_UNAVAILABLE
+    }
   }
 
   private fun fail(error: Throwable) {

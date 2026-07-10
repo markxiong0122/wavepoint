@@ -57,6 +57,7 @@ dependencies {
   implementation(libs.supabase.functions)
   implementation(libs.ktor.client.okhttp)
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.okhttp)
 
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
