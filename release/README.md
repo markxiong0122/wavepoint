@@ -6,7 +6,7 @@ App Store IPA files in this directory are signed distribution builds for `ai.map
 - `Wavepoint-0.1.0-2.ipa`: hybrid playback and in-app account deletion release candidate.
 - `Wavepoint-0.1.0-3.ipa`: automatic cleanup playback and artwork layout release candidate.
 - `Wavepoint-0.1.0-4.ipa`: Spotify library removal fix uploaded to TestFlight.
-- Build `0.1.0 (5)`: Spotify/Apple Music provider picker, Apple Music playback, and the `Wavepoint Dumpster 🗑️` cleanup flow. Generate the signed IPA only after the physical-device Apple Music gate passes.
+- `Wavepoint-0.1.0-5.ipa`: Spotify/Apple Music provider picker, Apple Music playback, and the `Wavepoint Dumpster 🗑️` cleanup flow, uploaded to TestFlight.
 
 ## Build 5 App Review notes
 
