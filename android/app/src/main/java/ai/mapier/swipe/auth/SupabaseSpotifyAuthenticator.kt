@@ -33,6 +33,16 @@ class SupabaseSpotifyAuthenticator(
     onSession: (SpotifyAuthSession) -> Unit,
     onError: (Throwable) -> Unit,
   ) {
+    val callback = intent.data
+    if (
+      rejectSpotifyOAuthCallback(
+        error = callback?.getQueryParameter("error"),
+        description = callback?.getQueryParameter("error_description"),
+        onError = onError,
+      )
+    ) {
+      return
+    }
     client.handleDeeplinks(
       intent = intent,
       onSessionSuccess = { onSession(it.toDomain()) },
@@ -73,4 +83,18 @@ class SupabaseSpotifyAuthenticator(
       install(Functions)
     }
   }
+}
+
+internal fun rejectSpotifyOAuthCallback(
+  error: String?,
+  description: String?,
+  onError: (Throwable) -> Unit,
+): Boolean {
+  if (error.isNullOrBlank()) return false
+  val message = when (error) {
+    "access_denied" -> "Spotify sign-in was cancelled."
+    else -> description?.takeIf(String::isNotBlank) ?: "Spotify sign-in failed."
+  }
+  onError(IllegalStateException(message))
+  return true
 }
