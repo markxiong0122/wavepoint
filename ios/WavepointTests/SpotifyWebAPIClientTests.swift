@@ -4,6 +4,44 @@ import XCTest
 @testable import Wavepoint
 
 final class SpotifyWebAPIClientTests: XCTestCase {
+  func testFetchAccountEligibilityMapsSubscriptionProducts() async throws {
+    let transport = RecordingSpotifyTransport(responses: [
+      response(status: 200, body: #"{"product":"premium"}"#),
+      response(status: 200, body: #"{"product":"free"}"#),
+      response(status: 200, body: #"{"product":"open"}"#),
+      response(status: 200, body: #"{}"#),
+      response(status: 200, body: #"{"product":"student"}"#),
+    ])
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
+
+    let premium = try await client.fetchAccountEligibility()
+    let free = try await client.fetchAccountEligibility()
+    let open = try await client.fetchAccountEligibility()
+    let missing = try await client.fetchAccountEligibility()
+    let unknown = try await client.fetchAccountEligibility()
+
+    XCTAssertEqual(premium, .premium)
+    XCTAssertEqual(free, .free)
+    XCTAssertEqual(open, .free)
+    XCTAssertEqual(missing, .unverifiable)
+    XCTAssertEqual(unknown, .unverifiable)
+
+    let requests = await transport.requests
+    XCTAssertEqual(requests.map(\.url?.path), Array(repeating: "/v1/me", count: 5))
+  }
+
+  func testFetchAccountEligibilityMapsForbiddenSeparately() async {
+    let transport = RecordingSpotifyTransport(responses: [response(status: 403, body: "{}")])
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
+
+    do {
+      _ = try await client.fetchAccountEligibility()
+      XCTFail("Expected account eligibility to be forbidden")
+    } catch {
+      XCTAssertEqual(error as? SpotifyWebAPIError, .accountEligibilityForbidden)
+    }
+  }
+
   func testFetchSavedTracksFollowsPaginationAndAuthorizesRequests() async throws {
     let transport = RecordingSpotifyTransport(responses: [
       response(

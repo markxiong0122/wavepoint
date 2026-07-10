@@ -8,12 +8,53 @@ final class AppSessionModelTests: XCTestCase {
     let model = AppSessionModel(
       authenticator: authenticator,
       tokenStore: InMemorySpotifyTokenStore(),
-      accountDeleter: FakeAccountDeletionService()
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium)
     )
 
     await model.restore()
 
     XCTAssertEqual(model.state, .signedOut)
+  }
+
+  func testRestoreRechecksSubscriptionAndBlocksFreeAccount() async {
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    let authenticator = FakeSpotifyAuthenticator(
+      currentSession: SpotifyAuthSession(providerTokens: tokens)
+    )
+    let tokenStore = InMemorySpotifyTokenStore()
+    let model = AppSessionModel(
+      authenticator: authenticator,
+      tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .free)
+    )
+
+    await model.restore()
+
+    XCTAssertEqual(model.state, .spotifyPremiumRequired)
+    XCTAssertNil(tokenStore.tokens)
+    let clearLocalSessionCallCount = await authenticator.clearLocalSessionCallCount
+    XCTAssertEqual(clearLocalSessionCallCount, 1)
+  }
+
+  func testRestoreUsesStoredProviderTokenWhenSupabaseOmitsIt() async throws {
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    let tokenStore = InMemorySpotifyTokenStore()
+    try tokenStore.save(tokens)
+    let model = AppSessionModel(
+      authenticator: FakeSpotifyAuthenticator(
+        currentSession: SpotifyAuthSession(providerTokens: nil)
+      ),
+      tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium)
+    )
+
+    await model.restore()
+
+    XCTAssertEqual(model.state, .signedIn)
+    XCTAssertEqual(tokenStore.tokens, tokens)
   }
 
   func testSignInMovesThroughAuthorizingThenSavesTokens() async {
@@ -30,6 +71,7 @@ final class AppSessionModelTests: XCTestCase {
       authenticator: authenticator,
       tokenStore: tokenStore,
       accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
       initialState: .signedOut
     )
 
@@ -52,6 +94,7 @@ final class AppSessionModelTests: XCTestCase {
       authenticator: authenticator,
       tokenStore: InMemorySpotifyTokenStore(),
       accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
       initialState: .signedOut
     )
 
@@ -61,6 +104,68 @@ final class AppSessionModelTests: XCTestCase {
       model.state,
       .failed("Spotify did not return an access token. Please try connecting again.")
     )
+  }
+
+  func testSignInWithFreeAccountClearsCredentialsAndShowsPremiumBlocker() async {
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    let authenticator = FakeSpotifyAuthenticator(
+      signInSession: SpotifyAuthSession(providerTokens: tokens)
+    )
+    let tokenStore = InMemorySpotifyTokenStore()
+    let model = AppSessionModel(
+      authenticator: authenticator,
+      tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .free),
+      initialState: .signedOut
+    )
+
+    await model.signIn()
+
+    XCTAssertEqual(model.state, .spotifyPremiumRequired)
+    XCTAssertNil(tokenStore.tokens)
+    let clearLocalSessionCallCount = await authenticator.clearLocalSessionCallCount
+    XCTAssertEqual(clearLocalSessionCallCount, 1)
+  }
+
+  func testSignInWithUnknownProductPreservesCredentialsForRetry() async {
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    let tokenStore = InMemorySpotifyTokenStore()
+    let model = AppSessionModel(
+      authenticator: FakeSpotifyAuthenticator(
+        signInSession: SpotifyAuthSession(providerTokens: tokens)
+      ),
+      tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .unverifiable),
+      initialState: .signedOut
+    )
+
+    await model.signIn()
+
+    XCTAssertEqual(model.state, .spotifyEligibilityUnavailable)
+    XCTAssertEqual(tokenStore.tokens, tokens)
+  }
+
+  func testSignInWithForbiddenEligibilityRequestsReconnect() async {
+    let tokens = SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
+    let tokenStore = InMemorySpotifyTokenStore()
+    let model = AppSessionModel(
+      authenticator: FakeSpotifyAuthenticator(
+        signInSession: SpotifyAuthSession(providerTokens: tokens)
+      ),
+      tokenStore: tokenStore,
+      accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(
+        error: SpotifyWebAPIError.accountEligibilityForbidden
+      ),
+      initialState: .signedOut
+    )
+
+    await model.signIn()
+
+    XCTAssertEqual(model.state, .spotifyReconnectRequired)
+    XCTAssertEqual(tokenStore.tokens, tokens)
   }
 
   func testSignOutClearsSupabaseSessionAndStoredTokens() async throws {
@@ -73,6 +178,7 @@ final class AppSessionModelTests: XCTestCase {
       authenticator: authenticator,
       tokenStore: tokenStore,
       accountDeleter: FakeAccountDeletionService(),
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
       initialState: .signedIn
     )
 
@@ -95,6 +201,7 @@ final class AppSessionModelTests: XCTestCase {
       authenticator: authenticator,
       tokenStore: tokenStore,
       accountDeleter: deletionService,
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
       initialState: .signedIn
     )
 
@@ -123,6 +230,7 @@ final class AppSessionModelTests: XCTestCase {
       authenticator: authenticator,
       tokenStore: tokenStore,
       accountDeleter: deletionService,
+      eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
       initialState: .signedIn
     )
 
@@ -194,6 +302,26 @@ private enum FakeDeletionError: LocalizedError {
 
   var errorDescription: String? {
     "Please try again. Your account was not deleted."
+  }
+}
+
+private actor FakeSpotifyEligibilityChecker: SpotifyAccountEligibilityChecking {
+  private let result: SpotifyAccountEligibility?
+  private let error: Error?
+
+  init(result: SpotifyAccountEligibility) {
+    self.result = result
+    error = nil
+  }
+
+  init(error: Error) {
+    result = nil
+    self.error = error
+  }
+
+  func fetchAccountEligibility() async throws -> SpotifyAccountEligibility {
+    if let error { throw error }
+    return result ?? .unverifiable
   }
 }
 

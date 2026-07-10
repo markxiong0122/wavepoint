@@ -14,17 +14,6 @@ struct WavepointApp: App {
       let supabaseClient = SupabaseSpotifyAuthenticator.makeClient(
         configuration: configuration
       )
-      sessionModel = AppSessionModel(
-        authenticator: try SupabaseSpotifyAuthenticator(
-          client: supabaseClient,
-          callbackURL: configuration.callbackURL
-        ),
-        tokenStore: tokenStore,
-        accountDeleter: SupabaseAccountDeletionService(
-          client: supabaseClient,
-          configuration: configuration
-        )
-      )
       let credentialProvider = SpotifyCredentialProvider(
         tokenStore: tokenStore,
         refreshService: SupabaseSpotifyTokenRefreshService(
@@ -35,6 +24,18 @@ struct WavepointApp: App {
       let spotifyClient = SpotifyWebAPIClient { forceRefresh in
         try await credentialProvider.accessToken(forceRefresh: forceRefresh)
       }
+      sessionModel = AppSessionModel(
+        authenticator: try SupabaseSpotifyAuthenticator(
+          client: supabaseClient,
+          callbackURL: configuration.callbackURL
+        ),
+        tokenStore: tokenStore,
+        accountDeleter: SupabaseAccountDeletionService(
+          client: supabaseClient,
+          configuration: configuration
+        ),
+        eligibilityChecker: spotifyClient
+      )
       cleanupModel = CleanupSessionModel(
         service: spotifyClient
       )

@@ -31,7 +31,17 @@ protocol SpotifyLibraryServing: Sendable {
   func removeFromLibrary(uris: [String]) async throws -> Int
 }
 
-struct SpotifyWebAPIClient: SpotifyLibraryServing {
+enum SpotifyAccountEligibility: Equatable, Sendable {
+  case premium
+  case free
+  case unverifiable
+}
+
+protocol SpotifyAccountEligibilityChecking: Sendable {
+  func fetchAccountEligibility() async throws -> SpotifyAccountEligibility
+}
+
+struct SpotifyWebAPIClient: SpotifyLibraryServing, SpotifyAccountEligibilityChecking {
   private let transport: any SpotifyHTTPTransport
   private let accessToken: @Sendable (Bool) async throws -> String
   private let baseURL = URL(string: "https://api.spotify.com/v1")!
@@ -42,6 +52,23 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
   ) {
     self.transport = transport
     self.accessToken = accessToken
+  }
+
+  func fetchAccountEligibility() async throws -> SpotifyAccountEligibility {
+    do {
+      let response = try await sendAuthorizedRequest(to: baseURL.appending(path: "me"))
+      let profile = try decode(CurrentUserProfile.self, from: response.data)
+      switch profile.product?.lowercased() {
+      case "premium":
+        return .premium
+      case "free", "open":
+        return .free
+      default:
+        return .unverifiable
+      }
+    } catch SpotifyWebAPIError.httpStatus(403) {
+      throw SpotifyWebAPIError.accountEligibilityForbidden
+    }
   }
 
   func fetchSavedTracks() async throws -> [SpotifyTrack] {
@@ -187,6 +214,7 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
 }
 
 enum SpotifyWebAPIError: LocalizedError, Equatable {
+  case accountEligibilityForbidden
   case authorizationExpired
   case invalidResponse
   case invalidData
@@ -196,6 +224,8 @@ enum SpotifyWebAPIError: LocalizedError, Equatable {
 
   var errorDescription: String? {
     switch self {
+    case .accountEligibilityForbidden:
+      "Spotify could not verify this account. Reconnect with the latest permissions or ask the app owner to add this account as a tester."
     case .authorizationExpired:
       "Your Spotify connection expired. Please reconnect."
     case .invalidResponse, .invalidData:
@@ -208,6 +238,10 @@ enum SpotifyWebAPIError: LocalizedError, Equatable {
       "Removed \(committedCount) songs, but \(remainingCount) still need to be retried."
     }
   }
+}
+
+private struct CurrentUserProfile: Decodable {
+  let product: String?
 }
 
 private struct SavedTracksPage: Decodable {

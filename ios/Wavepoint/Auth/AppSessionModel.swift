@@ -6,6 +6,9 @@ enum AppSessionState: Equatable, Sendable {
   case signedOut
   case authorizing
   case signedIn
+  case spotifyPremiumRequired
+  case spotifyReconnectRequired
+  case spotifyEligibilityUnavailable
   case deletingAccount
   case failed(String)
 }
@@ -19,16 +22,19 @@ final class AppSessionModel {
   private let authenticator: any SpotifyAuthenticating
   private let tokenStore: any SpotifyTokenStoring
   private let accountDeleter: any AccountDeleting
+  private let eligibilityChecker: any SpotifyAccountEligibilityChecking
 
   init(
     authenticator: any SpotifyAuthenticating,
     tokenStore: any SpotifyTokenStoring,
     accountDeleter: any AccountDeleting,
+    eligibilityChecker: any SpotifyAccountEligibilityChecking,
     initialState: AppSessionState = .restoring
   ) {
     self.authenticator = authenticator
     self.tokenStore = tokenStore
     self.accountDeleter = accountDeleter
+    self.eligibilityChecker = eligibilityChecker
     state = initialState
   }
 
@@ -43,9 +49,9 @@ final class AppSessionModel {
 
       if let providerTokens = session.providerTokens {
         try tokenStore.save(providerTokens)
-        state = .signedIn
+        await verifyEligibility()
       } else if try tokenStore.load() != nil {
-        state = .signedIn
+        await verifyEligibility()
       } else {
         state = .signedOut
       }
@@ -67,7 +73,7 @@ final class AppSessionModel {
       }
 
       try tokenStore.save(providerTokens)
-      state = .signedIn
+      await verifyEligibility()
     } catch {
       state = .failed(error.localizedDescription)
     }
@@ -81,6 +87,21 @@ final class AppSessionModel {
     } catch {
       state = .failed(error.localizedDescription)
     }
+  }
+
+  func retryEligibility() async {
+    guard (try? tokenStore.load()) != nil else {
+      state = .signedOut
+      return
+    }
+    state = .authorizing
+    await verifyEligibility()
+  }
+
+  func reconnect() async {
+    try? await authenticator.clearLocalSession()
+    try? tokenStore.delete()
+    await signIn()
   }
 
   func deleteAccount() async {
@@ -102,5 +123,26 @@ final class AppSessionModel {
 
   func dismissAccountDeletionError() {
     accountDeletionError = nil
+  }
+
+  private func verifyEligibility() async {
+    do {
+      switch try await eligibilityChecker.fetchAccountEligibility() {
+      case .premium:
+        state = .signedIn
+      case .free:
+        try? await authenticator.clearLocalSession()
+        try? tokenStore.delete()
+        state = .spotifyPremiumRequired
+      case .unverifiable:
+        state = .spotifyEligibilityUnavailable
+      }
+    } catch SpotifyWebAPIError.accountEligibilityForbidden,
+      SpotifyWebAPIError.authorizationExpired
+    {
+      state = .spotifyReconnectRequired
+    } catch {
+      state = .spotifyEligibilityUnavailable
+    }
   }
 }

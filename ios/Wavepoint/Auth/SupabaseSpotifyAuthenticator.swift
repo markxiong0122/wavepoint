@@ -20,6 +20,7 @@ struct SpotifyAuthorizationRequest: Equatable, Sendable {
     self.callbackURL = callbackURL
     scopes = [
       "user-read-email",
+      "user-read-private",
       "user-library-read",
       "user-library-modify",
       "user-read-recently-played",

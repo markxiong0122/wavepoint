@@ -58,7 +58,7 @@ struct SpotifyLoginView: View {
       .buttonStyle(PressOffsetButtonStyle())
       .accessibilityIdentifier("spotify-login-button")
 
-      Text("Wavepoint reads and edits your Spotify library only after you confirm a removal batch.")
+      Text("Spotify Premium required. Wavepoint reads and edits your Spotify library only after you confirm a removal batch.")
         .font(.system(size: 11, weight: .medium, design: .monospaced))
         .foregroundStyle(WavepointTheme.mutedInk)
         .lineSpacing(3)
