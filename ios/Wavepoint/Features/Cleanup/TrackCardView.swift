@@ -117,7 +117,7 @@ struct TrackCardView: View {
       AsyncImage(url: url) { phase in
         switch phase {
         case .success(let image):
-          image.resizable().scaledToFit()
+          TrackArtworkImage(image: image)
         case .failure:
           artworkPlaceholder
         default:
@@ -127,10 +127,11 @@ struct TrackCardView: View {
           }
         }
       }
-      .aspectRatio(1, contentMode: .fit)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .clipped()
     } else {
       artworkPlaceholder
-        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
   }
 
@@ -255,5 +256,17 @@ struct TrackCardView: View {
           }
         }
       }
+  }
+}
+
+struct TrackArtworkImage: View {
+  let image: Image
+
+  var body: some View {
+    image
+      .resizable()
+      .scaledToFill()
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .clipped()
   }
 }
