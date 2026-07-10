@@ -61,7 +61,14 @@ dependencies {
   implementation(libs.gson)
   implementation(libs.kotlinx.coroutines.android)
   implementation(files("../spotify-app-remote/spotify-app-remote-release-0.8.0.aar"))
+  implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
 
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+
+  androidTestImplementation(libs.androidx.test.ext.junit)
+  androidTestImplementation(libs.espresso.core)
+  androidTestImplementation(libs.compose.ui.test.junit4)
+  debugImplementation(libs.compose.ui.test.manifest)
 }
