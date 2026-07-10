@@ -54,7 +54,10 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
     do {
       let response = try await sendAuthorizedRequest(to: baseURL.appending(path: "me"))
       let profile = try decode(CurrentUserProfile.self, from: response.data)
-      switch profile.product?.lowercased() {
+      guard let product = profile.product?.lowercased() else {
+        throw SpotifyWebAPIError.accountEligibilityForbidden
+      }
+      switch product {
       case "premium":
         return .premium
       case "free", "open":

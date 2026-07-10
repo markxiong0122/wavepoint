@@ -9,7 +9,6 @@ final class SpotifyWebAPIClientTests: XCTestCase {
       response(status: 200, body: #"{"product":"premium"}"#),
       response(status: 200, body: #"{"product":"free"}"#),
       response(status: 200, body: #"{"product":"open"}"#),
-      response(status: 200, body: #"{}"#),
       response(status: 200, body: #"{"product":"student"}"#),
     ])
     let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
@@ -17,17 +16,27 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     let premium = try await client.fetchAccountEligibility()
     let free = try await client.fetchAccountEligibility()
     let open = try await client.fetchAccountEligibility()
-    let missing = try await client.fetchAccountEligibility()
     let unknown = try await client.fetchAccountEligibility()
 
     XCTAssertEqual(premium, .premium)
     XCTAssertEqual(free, .free)
     XCTAssertEqual(open, .free)
-    XCTAssertEqual(missing, .unverifiable)
     XCTAssertEqual(unknown, .unverifiable)
 
     let requests = await transport.requests
-    XCTAssertEqual(requests.map(\.url?.path), Array(repeating: "/v1/me", count: 5))
+    XCTAssertEqual(requests.map(\.url?.path), Array(repeating: "/v1/me", count: 4))
+  }
+
+  func testMissingSubscriptionProductRequiresFreshAuthorization() async {
+    let transport = RecordingSpotifyTransport(responses: [response(status: 200, body: "{}")])
+    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
+
+    do {
+      _ = try await client.fetchAccountEligibility()
+      XCTFail("Expected missing subscription permission to require reconnection")
+    } catch {
+      XCTAssertEqual(error as? SpotifyWebAPIError, .accountEligibilityForbidden)
+    }
   }
 
   func testFetchAccountEligibilityMapsForbiddenSeparately() async {

@@ -14,7 +14,6 @@ class SpotifyWebApiClientTest {
       response(200, """{"product":"premium"}"""),
       response(200, """{"product":"free"}"""),
       response(200, """{"product":"open"}"""),
-      response(200, "{}"),
       response(200, """{"product":"student"}"""),
     )
     val client = SpotifyWebApiClient(transport) { "token" }
@@ -23,8 +22,16 @@ class SpotifyWebApiClientTest {
     assertEquals(SpotifyAccountEligibility.FREE, client.fetchAccountEligibility())
     assertEquals(SpotifyAccountEligibility.FREE, client.fetchAccountEligibility())
     assertEquals(SpotifyAccountEligibility.UNVERIFIABLE, client.fetchAccountEligibility())
-    assertEquals(SpotifyAccountEligibility.UNVERIFIABLE, client.fetchAccountEligibility())
-    assertEquals(List(5) { "/v1/me" }, transport.requests.map { it.path })
+    assertEquals(List(4) { "/v1/me" }, transport.requests.map { it.path })
+  }
+
+  @Test
+  fun missingSubscriptionProductRequiresFreshAuthorization() = runTest {
+    val client = SpotifyWebApiClient(RecordingTransport(response(200, "{}"))) { "token" }
+
+    val error = runCatching { client.fetchAccountEligibility() }.exceptionOrNull()
+
+    assertEquals(SpotifyWebApiErrorKind.ACCOUNT_ELIGIBILITY_FORBIDDEN, error.kind)
   }
 
   @Test

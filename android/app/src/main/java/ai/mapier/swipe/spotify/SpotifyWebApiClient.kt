@@ -73,7 +73,9 @@ class SpotifyWebApiClient(
 ) : SpotifyAccountEligibilityChecker, SpotifyLibraryService {
   override suspend fun fetchAccountEligibility(): SpotifyAccountEligibility {
     return try {
-      when (decode<CurrentUserProfile>(authorized("$BASE_URL/me")).product?.lowercase()) {
+      val product = decode<CurrentUserProfile>(authorized("$BASE_URL/me")).product
+        ?: throw SpotifyWebApiException(SpotifyWebApiErrorKind.ACCOUNT_ELIGIBILITY_FORBIDDEN)
+      when (product.lowercase()) {
         "premium" -> SpotifyAccountEligibility.PREMIUM
         "free", "open" -> SpotifyAccountEligibility.FREE
         else -> SpotifyAccountEligibility.UNVERIFIABLE
