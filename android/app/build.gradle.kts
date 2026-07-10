@@ -58,6 +58,9 @@ dependencies {
   implementation(libs.ktor.client.okhttp)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.okhttp)
+  implementation(libs.gson)
+  implementation(libs.kotlinx.coroutines.android)
+  implementation(files("../spotify-app-remote/spotify-app-remote-release-0.8.0.aar"))
 
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
