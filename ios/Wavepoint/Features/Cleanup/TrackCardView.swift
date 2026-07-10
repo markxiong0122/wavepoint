@@ -69,12 +69,12 @@ struct TrackCardView: View {
 
         if let destinationURL = track.destinationURL {
           Link(destination: destinationURL) {
-            Label("OPEN IN SPOTIFY", systemImage: "arrow.up.right")
+            Label(presentation.destinationActionTitle, systemImage: "arrow.up.right")
               .font(.system(size: 10, weight: .bold, design: .monospaced))
               .foregroundStyle(WavepointTheme.ink)
               .frame(minHeight: 32)
           }
-          .accessibilityLabel("Open \(track.title) in Spotify")
+          .accessibilityLabel("\(presentation.destinationActionTitle): \(track.title)")
         }
       }
       .padding(16)
@@ -96,6 +96,10 @@ struct TrackCardView: View {
   private var savedDateLabel: String {
     guard let addedAt = track.addedAt else { return "SAVED DATE UNKNOWN" }
     return "SAVED \(addedAt.formatted(.dateTime.year()))"
+  }
+
+  private var presentation: CleanupProviderPresentation {
+    CleanupProviderPresentation(provider: track.provider)
   }
 
   @ViewBuilder
@@ -186,7 +190,7 @@ struct TrackCardView: View {
   @ViewBuilder
   private var decisionStamp: some View {
     if abs(dragOffset.width) > 64 {
-      Text(dragOffset.width < 0 ? "× REMOVE" : "✓ KEEP")
+      Text(dragOffset.width < 0 ? presentation.destructiveActionLabel : "✓ KEEP")
         .font(.system(size: 14, weight: .black, design: .monospaced))
         .foregroundStyle(WavepointTheme.ink)
         .padding(.horizontal, 12)

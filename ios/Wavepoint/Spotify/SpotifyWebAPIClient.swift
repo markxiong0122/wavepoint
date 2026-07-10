@@ -40,6 +40,8 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
   private let accessToken: @Sendable (Bool) async throws -> String
   private let baseURL = URL(string: "https://api.spotify.com/v1")!
 
+  let provider = MusicProvider.spotify
+
   init(
     transport: any SpotifyHTTPTransport = URLSessionSpotifyTransport(),
     accessToken: @escaping @Sendable (Bool) async throws -> String
@@ -70,7 +72,14 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
   }
 
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
-    CleanupCommitResult(committedCount: try await removeFromLibrary(uris: trackIDs))
+    do {
+      return .removed(count: try await removeFromLibrary(uris: trackIDs))
+    } catch SpotifyWebAPIError.partialRemoval(let committedCount, let remainingCount) {
+      throw CleanupCommitError.partial(
+        committedCount: committedCount,
+        remainingCount: remainingCount
+      )
+    }
   }
 
   func fetchSavedTracks() async throws -> [LibraryTrack] {

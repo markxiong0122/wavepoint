@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RemovalReviewView: View {
   let tracks: [LibraryTrack]
+  let presentation: CleanupProviderPresentation
   let onCancel: () -> Void
   let onConfirm: () -> Void
 
@@ -19,7 +20,7 @@ struct RemovalReviewView: View {
       Text("Ready to cut?")
         .font(.system(size: 38, weight: .black, design: .rounded))
         .tracking(-1.5)
-      Text("Nothing has changed in Spotify yet. These are the songs staged for removal.")
+      Text(presentation.reviewTrustCopy)
         .font(.system(size: 15, weight: .medium, design: .rounded))
         .foregroundStyle(WavepointTheme.paper.opacity(0.68))
 
@@ -58,7 +59,7 @@ struct RemovalReviewView: View {
       }
 
       Button(action: onConfirm) {
-        Text("REMOVE \(tracks.count) FROM LIKED SONGS")
+        Text(presentation.reviewActionTitle(count: tracks.count))
           .font(.system(size: 12, weight: .black, design: .monospaced))
           .frame(maxWidth: .infinity, minHeight: 56)
           .foregroundStyle(WavepointTheme.ink)
@@ -70,7 +71,7 @@ struct RemovalReviewView: View {
           }
       }
       .buttonStyle(PressOffsetButtonStyle())
-      .accessibilityLabel("Confirm removal of \(tracks.count) songs from Liked Songs")
+      .accessibilityLabel(presentation.reviewActionTitle(count: tracks.count))
     }
     .padding(20)
     .foregroundStyle(WavepointTheme.paper)

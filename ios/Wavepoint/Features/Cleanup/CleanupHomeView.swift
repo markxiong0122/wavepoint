@@ -87,6 +87,7 @@ struct CleanupHomeView: View {
       case .reviewing:
         RemovalReviewView(
           tracks: model.stagedRemovals,
+          presentation: model.presentation,
           onCancel: model.cancelReview,
           onConfirm: { Task { await model.confirmRemovals() } }
         )
@@ -152,7 +153,7 @@ struct CleanupHomeView: View {
       CutRecordMark(size: 76)
       ProgressView()
         .tint(WavepointTheme.keep)
-      Text("DIGGING THROUGH LIKED SONGS…")
+      Text(model.presentation.loadingTitle)
         .font(.system(size: 12, weight: .bold, design: .monospaced))
         .tracking(0.7)
     }
@@ -169,7 +170,7 @@ struct CleanupHomeView: View {
       Text("STARTING AUTOPLAY…")
         .font(.system(size: 12, weight: .bold, design: .monospaced))
         .tracking(0.7)
-      Text("Spotify will open with your first cleanup track.")
+      Text(model.presentation.autoplayStartingDetail)
         .font(.system(size: 13, weight: .medium, design: .rounded))
         .foregroundStyle(WavepointTheme.paper.opacity(0.68))
     }
@@ -243,7 +244,7 @@ struct CleanupHomeView: View {
   private var decisionControls: some View {
     HStack(spacing: 10) {
       decisionButton(
-        title: "× REMOVE",
+        title: model.presentation.destructiveActionLabel,
         color: WavepointTheme.remove,
         action: model.removeCurrentTrack
       )
@@ -293,7 +294,7 @@ struct CleanupHomeView: View {
     VStack(spacing: 18) {
       ProgressView()
         .tint(WavepointTheme.remove)
-      Text("REMOVING \(model.stagedRemovals.count) SONGS…")
+      Text(model.presentation.committingTitle(count: model.stagedRemovals.count))
         .font(.system(size: 12, weight: .bold, design: .monospaced))
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -338,7 +339,7 @@ struct CleanupHomeView: View {
   private func errorView(_ message: String) -> some View {
     VStack(alignment: .leading, spacing: 18) {
       CutRecordMark(size: 64)
-      Text("SPOTIFY HIT A SNAG")
+      Text(model.presentation.errorEyebrow)
         .font(.system(size: 12, weight: .black, design: .monospaced))
         .foregroundStyle(WavepointTheme.remove)
       Text(message)

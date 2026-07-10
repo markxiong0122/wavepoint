@@ -4,6 +4,24 @@ import XCTest
 @testable import Wavepoint
 
 final class CleanupScreenTests: XCTestCase {
+  func testProviderPresentationUsesTruthfulSpotifyAndAppleCopy() {
+    let spotify = CleanupProviderPresentation(provider: .spotify)
+    let apple = CleanupProviderPresentation(provider: .appleMusic)
+
+    XCTAssertEqual(spotify.destructiveActionLabel, "× REMOVE")
+    XCTAssertEqual(spotify.reviewActionTitle(count: 3), "REMOVE 3 FROM LIKED SONGS")
+    XCTAssertEqual(spotify.completionTitle(hasDecisions: true), "That feels lighter.")
+    XCTAssertEqual(spotify.destinationActionTitle, "OPEN IN SPOTIFY")
+
+    XCTAssertEqual(apple.destructiveActionLabel, "× TOSS")
+    XCTAssertEqual(apple.reviewActionTitle(count: 3), "SEND 3 TO THE DUMPSTER")
+    XCTAssertEqual(apple.completionTitle(hasDecisions: true), "DUMPSTER READY")
+    XCTAssertEqual(apple.destinationActionTitle, "OPEN IN MUSIC")
+    XCTAssertTrue(apple.reviewTrustCopy.contains("songs stay in your Library"))
+    XCTAssertTrue(apple.completionInstructions.contains("Delete from Library"))
+    XCTAssertTrue(apple.completionInstructions.contains("Remove from Playlist alone"))
+  }
+
   func testStateMapsToStableAccessibleScreen() {
     XCTAssertEqual(CleanupScreen(state: .idle).accessibilityIdentifier, "cleanup-loading")
     XCTAssertEqual(CleanupScreen(state: .loading).accessibilityIdentifier, "cleanup-loading")
@@ -11,7 +29,11 @@ final class CleanupScreenTests: XCTestCase {
     XCTAssertEqual(CleanupScreen(state: .reviewing).accessibilityIdentifier, "cleanup-review")
     XCTAssertEqual(CleanupScreen(state: .committing).accessibilityIdentifier, "cleanup-committing")
     XCTAssertEqual(
-      CleanupScreen(state: .complete(.init(decisionCount: 2, removedCount: 1)))
+      CleanupScreen(
+        state: .complete(
+          .init(provider: .spotify, decisionCount: 2, result: .removed(count: 1))
+        )
+      )
         .accessibilityIdentifier,
       "cleanup-complete"
     )

@@ -12,8 +12,11 @@ enum CleanupSessionState: Equatable, Sendable {
 }
 
 struct CleanupSummary: Equatable, Sendable {
+  let provider: MusicProvider
   let decisionCount: Int
-  let removedCount: Int
+  let result: CleanupCommitResult
+
+  var affectedCount: Int { result.committedCount }
 }
 
 enum CleanupOutcome: Equatable, Sendable {
@@ -32,9 +35,11 @@ final class CleanupSessionModel {
   private(set) var state: CleanupSessionState = .idle
   private(set) var deck: [LibraryTrack] = []
   private(set) var decisions: [CleanupDecision] = []
+  private(set) var alreadyCommittedCount = 0
 
   private let service: any CleanupLibraryServing
   private let deckBuilder: CleanupDeckBuilder
+  private var committedTrackIDs: Set<String> = []
 
   init(
     service: any CleanupLibraryServing,
@@ -51,8 +56,15 @@ final class CleanupSessionModel {
 
   var stagedRemovals: [LibraryTrack] {
     decisions.compactMap { decision in
-      decision.outcome == .remove ? decision.track : nil
+      decision.outcome == .remove && !committedTrackIDs.contains(decision.track.commitID)
+        ? decision.track
+        : nil
     }
+  }
+
+  var provider: MusicProvider { service.provider }
+  var presentation: CleanupProviderPresentation {
+    CleanupProviderPresentation(provider: provider)
   }
 
   var completedCount: Int { decisions.count }
@@ -69,9 +81,13 @@ final class CleanupSessionModel {
         recentTrackIDs: recentIDs
       )
       decisions = []
+      committedTrackIDs = []
+      alreadyCommittedCount = 0
       state =
         deck.isEmpty
-        ? .complete(CleanupSummary(decisionCount: 0, removedCount: 0))
+        ? .complete(
+          CleanupSummary(provider: provider, decisionCount: 0, result: .noChanges)
+        )
         : .deciding
     } catch {
       state = .failed(error.localizedDescription)
@@ -107,11 +123,28 @@ final class CleanupSessionModel {
 
     do {
       let result = try await service.commit(trackIDs: stagedRemovals.map(\.commitID))
+      let finalResult: CleanupCommitResult
+      if case .removed(let count) = result {
+        finalResult = .removed(count: alreadyCommittedCount + count)
+      } else {
+        finalResult = result
+      }
       state = .complete(
         CleanupSummary(
+          provider: provider,
           decisionCount: decisions.count,
-          removedCount: result.committedCount
+          result: finalResult
         )
+      )
+    } catch CleanupCommitError.partial(let committedCount, _) {
+      let committedTracks = stagedRemovals.prefix(committedCount)
+      committedTrackIDs.formUnion(committedTracks.map(\.commitID))
+      alreadyCommittedCount += committedTracks.count
+      state = .failed(
+        CleanupCommitError.partial(
+          committedCount: alreadyCommittedCount,
+          remainingCount: stagedRemovals.count
+        ).localizedDescription
       )
     } catch {
       state = .failed(error.localizedDescription)
@@ -127,6 +160,8 @@ final class CleanupSessionModel {
     state = .idle
     deck = []
     decisions = []
+    committedTrackIDs = []
+    alreadyCommittedCount = 0
   }
 
   private func decide(_ outcome: CleanupOutcome) {
@@ -140,7 +175,13 @@ final class CleanupSessionModel {
   private func finishDeciding() {
     if stagedRemovals.isEmpty {
       state = .complete(
-        CleanupSummary(decisionCount: decisions.count, removedCount: 0)
+        CleanupSummary(
+          provider: provider,
+          decisionCount: decisions.count,
+          result: alreadyCommittedCount == 0
+            ? .noChanges
+            : .removed(count: alreadyCommittedCount)
+        )
       )
     } else {
       state = .reviewing

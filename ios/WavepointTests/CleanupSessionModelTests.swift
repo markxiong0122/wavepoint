@@ -69,9 +69,94 @@ final class CleanupSessionModelTests: XCTestCase {
 
     await model.confirmRemovals()
 
-    XCTAssertEqual(model.state, .complete(.init(decisionCount: 1, removedCount: 1)))
+    XCTAssertEqual(
+      model.state,
+      .complete(
+        .init(
+          provider: .spotify,
+          decisionCount: 1,
+          result: .removed(count: 1)
+        )
+      )
+    )
     let removedURIs = await service.removedURIs
     XCTAssertEqual(removedURIs, ["spotify:track:remove"])
+  }
+
+  func testAppleCommitCompletesWithTruthfulDumpsterResult() async {
+    let destination = URL(string: "music://playlist/dumpster")!
+    let service = FakeCleanupLibraryService(
+      provider: .appleMusic,
+      tracks: [track(id: "toss", addedAt: Date(timeIntervalSince1970: 0))],
+      commitResult: .dumpster(updatedCount: 1, destinationURL: destination)
+    )
+    let model = CleanupSessionModel(service: service)
+    await model.load()
+    model.removeCurrentTrack()
+
+    await model.confirmRemovals()
+
+    XCTAssertEqual(
+      model.state,
+      .complete(
+        .init(
+          provider: .appleMusic,
+          decisionCount: 1,
+          result: .dumpster(updatedCount: 1, destinationURL: destination)
+        )
+      )
+    )
+  }
+
+  func testPartialSpotifyCommitKeepsOnlyUnconfirmedTracksStaged() async {
+    let service = FakeCleanupLibraryService(
+      tracks: [
+        track(id: "one", addedAt: Date(timeIntervalSince1970: 0)),
+        track(id: "two", addedAt: Date(timeIntervalSince1970: 1)),
+      ],
+      commitError: CleanupCommitError.partial(
+        committedCount: 1,
+        remainingCount: 1
+      )
+    )
+    let model = CleanupSessionModel(service: service)
+    await model.load()
+    model.removeCurrentTrack()
+    let unconfirmedTrack = model.currentTrack
+    model.removeCurrentTrack()
+
+    await model.confirmRemovals()
+
+    guard case .failed = model.state else {
+      return XCTFail("Expected a partial failure")
+    }
+    XCTAssertEqual(model.stagedRemovals, [unconfirmedTrack].compactMap { $0 })
+  }
+
+  func testRetryAfterPartialSpotifyCommitReportsTotalCommittedCount() async {
+    let service = SequencedCleanupLibraryService(
+      tracks: [
+        track(id: "one", addedAt: Date(timeIntervalSince1970: 0)),
+        track(id: "two", addedAt: Date(timeIntervalSince1970: 1)),
+      ]
+    )
+    let model = CleanupSessionModel(service: service)
+    await model.load()
+    model.removeCurrentTrack()
+    model.removeCurrentTrack()
+
+    await model.confirmRemovals()
+    model.returnToReview()
+    await model.confirmRemovals()
+
+    XCTAssertEqual(
+      model.state,
+      .complete(
+        .init(provider: .spotify, decisionCount: 2, result: .removed(count: 2))
+      )
+    )
+    let committedBatches = await service.committedBatches
+    XCTAssertEqual(committedBatches.map(\.count), [2, 1])
   }
 
   func testEmptyLibraryCompletesWithoutDecisions() async {
@@ -79,7 +164,10 @@ final class CleanupSessionModelTests: XCTestCase {
 
     await model.load()
 
-    XCTAssertEqual(model.state, .complete(.init(decisionCount: 0, removedCount: 0)))
+    XCTAssertEqual(
+      model.state,
+      .complete(.init(provider: .spotify, decisionCount: 0, result: .noChanges))
+    )
   }
 
   func testLoadFailureShowsRetryableError() async {
@@ -113,19 +201,28 @@ final class CleanupSessionModelTests: XCTestCase {
 }
 
 private actor FakeCleanupLibraryService: CleanupLibraryServing {
+  nonisolated let provider: MusicProvider
   private let tracks: [LibraryTrack]
   private let recentIDs: Set<String>
   private let loadError: (any Error)?
+  private let commitResult: CleanupCommitResult?
+  private let commitError: (any Error)?
   private(set) var removedURIs: [String] = []
 
   init(
+    provider: MusicProvider = .spotify,
     tracks: [LibraryTrack],
     recentIDs: Set<String> = [],
-    loadError: (any Error)? = nil
+    loadError: (any Error)? = nil,
+    commitResult: CleanupCommitResult? = nil,
+    commitError: (any Error)? = nil
   ) {
+    self.provider = provider
     self.tracks = tracks
     self.recentIDs = recentIDs
     self.loadError = loadError
+    self.commitResult = commitResult
+    self.commitError = commitError
   }
 
   func fetchLibraryTracks() async throws -> [LibraryTrack] {
@@ -139,6 +236,33 @@ private actor FakeCleanupLibraryService: CleanupLibraryServing {
 
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
     removedURIs.append(contentsOf: trackIDs)
-    return CleanupCommitResult(committedCount: trackIDs.count)
+    if let commitError { throw commitError }
+    return commitResult ?? .removed(count: trackIDs.count)
+  }
+}
+
+private actor SequencedCleanupLibraryService: CleanupLibraryServing {
+  nonisolated let provider = MusicProvider.spotify
+  private let tracks: [LibraryTrack]
+  private(set) var committedBatches: [[String]] = []
+
+  init(tracks: [LibraryTrack]) {
+    self.tracks = tracks
+  }
+
+  func fetchLibraryTracks() async throws -> [LibraryTrack] {
+    tracks
+  }
+
+  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String> {
+    []
+  }
+
+  func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
+    committedBatches.append(trackIDs)
+    if committedBatches.count == 1 {
+      throw CleanupCommitError.partial(committedCount: 1, remainingCount: 1)
+    }
+    return .removed(count: trackIDs.count)
   }
 }

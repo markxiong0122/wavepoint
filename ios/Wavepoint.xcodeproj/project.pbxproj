@@ -31,6 +31,7 @@
 		82EFFD57228F157F6D95B2EF /* CleanupDeckBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D557F05D05F82556211A69 /* CleanupDeckBuilder.swift */; };
 		83A9CB54821D817DA7E18A85 /* SpotifyAppRemoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF2D96B2B11A5BD87DD4398 /* SpotifyAppRemoteService.swift */; };
 		8FC9B90685CE4735F3A59FF5 /* TrackPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D9E1AF5B4F688924C485C3 /* TrackPreviewPlayer.swift */; };
+		90FA00DAD64E841ADAF1D104 /* CleanupProviderPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BAEBC7A23FA02FDC12BE25 /* CleanupProviderPresentation.swift */; };
 		994D86FFD2B48824DE82D840 /* SpotifyAuthenticating.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDF49B87D168D7E43853177 /* SpotifyAuthenticating.swift */; };
 		9A3F1560A546B325AAB29849 /* CleanupLibraryServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40FCDFEBC1D9A7D37F61295 /* CleanupLibraryServing.swift */; };
 		A907F1AFD9BBFCB28885F641 /* SpotifyAppRemoteServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E501509193C720F18B7CDF5 /* SpotifyAppRemoteServiceTests.swift */; };
@@ -92,6 +93,7 @@
 		9BD9B7FC54DC2CB0B30265CA /* CleanupCompleteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupCompleteView.swift; sourceTree = "<group>"; };
 		9DD18CF3D5ABCA6CE44478A4 /* SpotifyAuthorizationRequestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAuthorizationRequestTests.swift; sourceTree = "<group>"; };
 		9E501509193C720F18B7CDF5 /* SpotifyAppRemoteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAppRemoteServiceTests.swift; sourceTree = "<group>"; };
+		A0BAEBC7A23FA02FDC12BE25 /* CleanupProviderPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupProviderPresentation.swift; sourceTree = "<group>"; };
 		A40FCDFEBC1D9A7D37F61295 /* CleanupLibraryServing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupLibraryServing.swift; sourceTree = "<group>"; };
 		A46888CE1D36B388C075F855 /* SpotifyLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyLoginView.swift; sourceTree = "<group>"; };
 		A84B34C445656F1CFFED3F04 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 				04D557F05D05F82556211A69 /* CleanupDeckBuilder.swift */,
 				A40FCDFEBC1D9A7D37F61295 /* CleanupLibraryServing.swift */,
 				582604A205496E4BACB8F42E /* CleanupPlaybackCoordinator.swift */,
+				A0BAEBC7A23FA02FDC12BE25 /* CleanupProviderPresentation.swift */,
 				40140A49E0CEEB1775291B7B /* CleanupSessionModel.swift */,
 				6F6F1768227FC3401F0E1283 /* LibraryTrack.swift */,
 			);
@@ -405,6 +408,7 @@
 				B184C51348BC333CE4823D65 /* CleanupHomeView.swift in Sources */,
 				9A3F1560A546B325AAB29849 /* CleanupLibraryServing.swift in Sources */,
 				46AF4F80D2D8B1D4C64933A0 /* CleanupPlaybackCoordinator.swift in Sources */,
+				90FA00DAD64E841ADAF1D104 /* CleanupProviderPresentation.swift in Sources */,
 				68C7384E3E534E59EDC2D013 /* CleanupSessionModel.swift in Sources */,
 				06C52E29D922C8824FDFB13D /* LibraryTrack.swift in Sources */,
 				1DA3C38D34DB6E7748C5AF3A /* RemovalReviewView.swift in Sources */,
