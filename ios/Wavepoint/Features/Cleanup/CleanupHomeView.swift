@@ -58,14 +58,17 @@ struct CleanupHomeView: View {
   @State private var model: CleanupSessionModel
   @State private var playback: CleanupPlaybackCoordinator
   @State private var presentedSheet: CleanupSheet?
+  @State private var isConfirmingProviderChange = false
   let onSignOut: () -> Void
   let onDeleteAccount: () -> Void
+  let onChangeProvider: () -> Void
 
   init(
     model: CleanupSessionModel,
-    remotePlayback: SpotifyAppRemoteService,
+    remotePlayback: any RemoteTrackPlaying,
     onSignOut: @escaping () -> Void,
-    onDeleteAccount: @escaping () -> Void
+    onDeleteAccount: @escaping () -> Void,
+    onChangeProvider: @escaping () -> Void
   ) {
     _model = State(initialValue: model)
     _playback = State(
@@ -75,6 +78,7 @@ struct CleanupHomeView: View {
     )
     self.onSignOut = onSignOut
     self.onDeleteAccount = onDeleteAccount
+    self.onChangeProvider = onChangeProvider
   }
 
   var body: some View {
@@ -122,12 +126,20 @@ struct CleanupHomeView: View {
       switch sheet {
       case .account:
         AccountSheetView(
+          provider: model.provider,
           onSignOut: onSignOut,
-          onDeleteAccount: onDeleteAccount
+          onDeleteAccount: onDeleteAccount,
+          onChangeProvider: requestProviderChange
         )
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
       }
+    }
+    .alert("Leave this cleanup session?", isPresented: $isConfirmingProviderChange) {
+      Button("CHANGE MUSIC SERVICE", role: .destructive, action: onChangeProvider)
+      Button("KEEP CLEANING", role: .cancel) {}
+    } message: {
+      Text("Your decisions in this unconfirmed batch will be discarded.")
     }
   }
 
@@ -359,7 +371,10 @@ struct CleanupHomeView: View {
       .background(WavepointTheme.keep)
       .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
 
-      Button("RECONNECT SPOTIFY", action: onSignOut)
+      Button(
+        model.provider == .spotify ? "RECONNECT SPOTIFY" : "CHANGE MUSIC SERVICE",
+        action: model.provider == .spotify ? onSignOut : onChangeProvider
+      )
         .font(.system(size: 11, weight: .bold, design: .monospaced))
         .foregroundStyle(WavepointTheme.paper)
         .frame(minHeight: 48)
@@ -368,5 +383,13 @@ struct CleanupHomeView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .foregroundStyle(WavepointTheme.paper)
     .accessibilityIdentifier("cleanup-error")
+  }
+
+  private func requestProviderChange() {
+    if model.requiresProviderChangeConfirmation {
+      isConfirmingProviderChange = true
+    } else {
+      onChangeProvider()
+    }
   }
 }

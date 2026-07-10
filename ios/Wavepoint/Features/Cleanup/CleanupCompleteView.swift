@@ -40,7 +40,7 @@ struct CleanupCompleteView: View {
         .background(WavepointTheme.keep)
         .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
 
-      Button("SIGN OUT", action: onSignOut)
+      Button(exitActionTitle, action: onSignOut)
         .font(.system(size: 11, weight: .bold, design: .monospaced))
         .frame(minHeight: 48)
     }
@@ -52,5 +52,9 @@ struct CleanupCompleteView: View {
 
   private var presentation: CleanupProviderPresentation {
     CleanupProviderPresentation(provider: summary.provider)
+  }
+
+  private var exitActionTitle: String {
+    summary.provider == .spotify ? "SIGN OUT" : "CHANGE MUSIC SERVICE"
   }
 }

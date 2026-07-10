@@ -1,13 +1,19 @@
 import OSLog
 import SwiftUI
+import UIKit
 
 enum AppRootScreen: Equatable {
   case progress
+  case providerPicker
   case login
-  case cleanup
+  case cleanup(MusicProvider)
   case spotifyPremiumRequired
   case spotifyReconnectRequired
   case spotifyEligibilityUnavailable
+  case appleMusicPermissionDenied
+  case appleMusicRestricted
+  case appleMusicSubscriptionRequired
+  case appleMusicSyncLibraryRequired
   case error(String)
 
   init(state: AppSessionState) {
@@ -17,7 +23,7 @@ enum AppRootScreen: Equatable {
     case .signedOut:
       self = .login
     case .signedIn:
-      self = .cleanup
+      self = .cleanup(.spotify)
     case .spotifyPremiumRequired:
       self = .spotifyPremiumRequired
     case .spotifyReconnectRequired:
@@ -29,92 +35,181 @@ enum AppRootScreen: Equatable {
     }
   }
 
+  init(
+    providerState: MusicProviderSessionState,
+    spotifyState: AppSessionState
+  ) {
+    switch providerState {
+    case .restoring, .authorizingAppleMusic:
+      self = .progress
+    case .providerPicker:
+      self = .providerPicker
+    case .spotifySelected:
+      self.init(state: spotifyState)
+    case .appleMusicReady:
+      self = .cleanup(.appleMusic)
+    case .appleMusicPermissionDenied:
+      self = .appleMusicPermissionDenied
+    case .appleMusicRestricted:
+      self = .appleMusicRestricted
+    case .appleMusicSubscriptionRequired:
+      self = .appleMusicSubscriptionRequired
+    case .appleMusicSyncLibraryRequired:
+      self = .appleMusicSyncLibraryRequired
+    case .failed(let message):
+      self = .error(message)
+    }
+  }
+
   var accessibilityIdentifier: String {
     switch self {
     case .progress: "auth-progress"
+    case .providerPicker: "music-provider-picker"
     case .login: "spotify-login-button"
     case .cleanup: "cleanup-home"
     case .spotifyPremiumRequired: "spotify-premium-required"
     case .spotifyReconnectRequired: "spotify-reconnect-required"
     case .spotifyEligibilityUnavailable: "spotify-eligibility-unavailable"
+    case .appleMusicPermissionDenied: "apple-music-permission-denied"
+    case .appleMusicRestricted: "apple-music-restricted"
+    case .appleMusicSubscriptionRequired: "apple-music-subscription-required"
+    case .appleMusicSyncLibraryRequired: "apple-music-sync-library-required"
     case .error: "auth-error"
     }
   }
 }
 
 struct AppRootView: View {
-  @State private var model: AppSessionModel
-  @State private var cleanupModel: CleanupSessionModel
-  private let remotePlayback: SpotifyAppRemoteService
+  @Environment(\.openURL) private var openURL
+  @Environment(\.scenePhase) private var scenePhase
+
+  @State private var providerModel: MusicProviderSessionModel
+  @State private var spotifyModel: AppSessionModel
+  @State private var spotifyCleanupModel: CleanupSessionModel
+  @State private var appleMusicCleanupModel: CleanupSessionModel
+  @State private var shouldStartSpotifySignIn = false
+
+  private let spotifyPlayback: SpotifyAppRemoteService
+  private let appleMusicPlayback: AppleMusicTrackPlayer
 
   init(
-    model: AppSessionModel,
-    cleanupModel: CleanupSessionModel,
-    remotePlayback: SpotifyAppRemoteService
+    providerModel: MusicProviderSessionModel,
+    spotifyModel: AppSessionModel,
+    spotifyCleanupModel: CleanupSessionModel,
+    spotifyPlayback: SpotifyAppRemoteService,
+    appleMusicCleanupModel: CleanupSessionModel,
+    appleMusicPlayback: AppleMusicTrackPlayer
   ) {
-    _model = State(initialValue: model)
-    _cleanupModel = State(initialValue: cleanupModel)
-    self.remotePlayback = remotePlayback
+    _providerModel = State(initialValue: providerModel)
+    _spotifyModel = State(initialValue: spotifyModel)
+    _spotifyCleanupModel = State(initialValue: spotifyCleanupModel)
+    _appleMusicCleanupModel = State(initialValue: appleMusicCleanupModel)
+    self.spotifyPlayback = spotifyPlayback
+    self.appleMusicPlayback = appleMusicPlayback
   }
 
   var body: some View {
     Group {
-      switch AppRootScreen(state: model.state) {
+      switch rootScreen {
       case .progress:
         authenticationProgress
-      case .login:
-        SpotifyLoginView {
-          Task { await model.signIn() }
-        }
-      case .cleanup:
-        CleanupHomeView(
-          model: cleanupModel,
-          remotePlayback: remotePlayback,
-          onSignOut: {
-            cleanupModel.reset()
-            Task { await model.signOut() }
-          },
-          onDeleteAccount: {
-            cleanupModel.reset()
-            Task { await model.deleteAccount() }
+      case .providerPicker:
+        MusicProviderPickerView(
+          onSelectSpotify: selectSpotify,
+          onSelectAppleMusic: {
+            Task { await providerModel.connectAppleMusic() }
           }
         )
+      case .login:
+        SpotifyLoginView(
+          onSignIn: { Task { await spotifyModel.signIn() } },
+          onChangeProvider: changeProvider
+        )
+      case .cleanup(let provider):
+        cleanupView(provider: provider)
       case .spotifyPremiumRequired:
-        spotifyBlocker(
+        connectionBlocker(
           eyebrow: "SPOTIFY PREMIUM REQUIRED",
           message: "Wavepoint uses Spotify playback while you decide. Spotify Free accounts cannot start that playback.",
           primaryTitle: "TRY ANOTHER SPOTIFY ACCOUNT",
           identifier: "spotify-premium-required",
-          primaryAction: { Task { await model.reconnect() } }
+          primaryAction: { Task { await spotifyModel.reconnect() } }
         )
       case .spotifyReconnectRequired:
-        spotifyBlocker(
+        connectionBlocker(
           eyebrow: "RECONNECT SPOTIFY",
           message: "Wavepoint could not verify this account. Reconnect with the latest permissions, or ask the app owner to add this account as a tester.",
           primaryTitle: "RECONNECT SPOTIFY",
           identifier: "spotify-reconnect-required",
-          primaryAction: { Task { await model.reconnect() } }
+          primaryAction: { Task { await spotifyModel.reconnect() } }
         )
       case .spotifyEligibilityUnavailable:
-        spotifyBlocker(
+        connectionBlocker(
           eyebrow: "COULDN'T CHECK PREMIUM",
           message: "Spotify did not return a subscription status. Your connection is saved, so you can retry without signing in again.",
           primaryTitle: "TRY AGAIN",
           identifier: "spotify-eligibility-unavailable",
-          primaryAction: { Task { await model.retryEligibility() } }
+          primaryAction: { Task { await spotifyModel.retryEligibility() } }
+        )
+      case .appleMusicPermissionDenied:
+        connectionBlocker(
+          eyebrow: "APPLE MUSIC ACCESS NEEDED",
+          message: "Allow Media & Apple Music access in Settings so Wavepoint can read your library and build the Dumpster.",
+          primaryTitle: "OPEN SETTINGS",
+          identifier: "apple-music-permission-denied",
+          primaryAction: openSettings
+        )
+      case .appleMusicRestricted:
+        connectionBlocker(
+          eyebrow: "APPLE MUSIC IS RESTRICTED",
+          message: "This iPhone currently blocks Apple Music library access. Check Screen Time or device-management restrictions.",
+          primaryTitle: "CHECK AGAIN",
+          identifier: "apple-music-restricted",
+          primaryAction: retryAppleMusic
+        )
+      case .appleMusicSubscriptionRequired:
+        connectionBlocker(
+          eyebrow: "APPLE MUSIC REQUIRED",
+          message: "Wavepoint needs an active Apple Music subscription to play cleanup tracks and build your Dumpster playlist.",
+          primaryTitle: "CHECK AGAIN",
+          identifier: "apple-music-subscription-required",
+          primaryAction: retryAppleMusic
+        )
+      case .appleMusicSyncLibraryRequired:
+        connectionBlocker(
+          eyebrow: "TURN ON SYNC LIBRARY",
+          message: "Enable Sync Library in Settings → Music, then return here so Wavepoint can see your full library.",
+          primaryTitle: "CHECK AGAIN",
+          identifier: "apple-music-sync-library-required",
+          primaryAction: retryAppleMusic
         )
       case .error(let message):
         authenticationError(message)
       }
     }
     .task {
-      guard model.state == .restoring else { return }
-      await model.restore()
+      guard providerModel.state == .restoring else { return }
+      await providerModel.restore()
+    }
+    .task(id: providerModel.state) {
+      guard providerModel.state == .spotifySelected else { return }
+      if spotifyModel.state == .restoring {
+        await spotifyModel.restore()
+      }
+      if shouldStartSpotifySignIn, spotifyModel.state == .signedOut {
+        shouldStartSpotifySignIn = false
+        await spotifyModel.signIn()
+      }
+    }
+    .onChange(of: scenePhase) { oldPhase, newPhase in
+      guard oldPhase != .active, newPhase == .active else { return }
+      guard providerModel.state == .appleMusicPermissionDenied else { return }
+      retryAppleMusic()
     }
     .onOpenURL { url in
       Task {
         do {
-          _ = try await remotePlayback.handleOpenURL(url)
+          _ = try await spotifyPlayback.handleOpenURL(url)
         } catch {
           let nsError = error as NSError
           Logger(subsystem: "ai.mapier.swipe", category: "SpotifyAppRemote").error(
@@ -131,15 +226,44 @@ struct AppRootView: View {
     .alert(
       "ACCOUNT NOT DELETED",
       isPresented: Binding(
-        get: { model.accountDeletionError != nil },
+        get: { spotifyModel.accountDeletionError != nil },
         set: { isPresented in
-          if !isPresented { model.dismissAccountDeletionError() }
+          if !isPresented { spotifyModel.dismissAccountDeletionError() }
         }
       )
     ) {
-      Button("OK") { model.dismissAccountDeletionError() }
+      Button("OK") { spotifyModel.dismissAccountDeletionError() }
     } message: {
-      Text(model.accountDeletionError ?? "Please try again.")
+      Text(spotifyModel.accountDeletionError ?? "Please try again.")
+    }
+  }
+
+  private var rootScreen: AppRootScreen {
+    AppRootScreen(
+      providerState: providerModel.state,
+      spotifyState: spotifyModel.state
+    )
+  }
+
+  @ViewBuilder
+  private func cleanupView(provider: MusicProvider) -> some View {
+    switch provider {
+    case .spotify:
+      CleanupHomeView(
+        model: spotifyCleanupModel,
+        remotePlayback: spotifyPlayback,
+        onSignOut: signOutSpotify,
+        onDeleteAccount: deleteSpotifyAccount,
+        onChangeProvider: changeProvider
+      )
+    case .appleMusic:
+      CleanupHomeView(
+        model: appleMusicCleanupModel,
+        remotePlayback: appleMusicPlayback,
+        onSignOut: changeProvider,
+        onDeleteAccount: {},
+        onChangeProvider: changeProvider
+      )
     }
   }
 
@@ -159,7 +283,10 @@ struct AppRootView: View {
   }
 
   private var authenticationProgressLabel: String {
-    switch model.state {
+    if providerModel.state == .authorizingAppleMusic {
+      return "CONNECTING APPLE MUSIC…"
+    }
+    return switch spotifyModel.state {
     case .authorizing:
       "OPENING SPOTIFY…"
     case .deletingAccount:
@@ -176,15 +303,17 @@ struct AppRootView: View {
         .foregroundStyle(WavepointTheme.remove)
       Text(message)
         .font(.system(size: 22, weight: .bold, design: .rounded))
-      Button("TRY AGAIN") {
-        Task { await model.signIn() }
-      }
-      .font(.system(size: 13, weight: .black, design: .monospaced))
-      .foregroundStyle(WavepointTheme.ink)
-      .padding(.horizontal, 18)
-      .frame(minHeight: 50)
-      .background(WavepointTheme.keep)
-      .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+      Button("TRY AGAIN", action: retryConnection)
+        .font(.system(size: 13, weight: .black, design: .monospaced))
+        .foregroundStyle(WavepointTheme.ink)
+        .padding(.horizontal, 18)
+        .frame(minHeight: 50)
+        .background(WavepointTheme.keep)
+        .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+      Button("CHANGE MUSIC SERVICE", action: changeProvider)
+        .font(.system(size: 11, weight: .bold, design: .monospaced))
+        .foregroundStyle(WavepointTheme.paper)
+        .frame(minHeight: 48)
     }
     .padding(24)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -193,7 +322,7 @@ struct AppRootView: View {
     .accessibilityIdentifier("auth-error")
   }
 
-  private func spotifyBlocker(
+  private func connectionBlocker(
     eyebrow: String,
     message: String,
     primaryTitle: String,
@@ -214,11 +343,65 @@ struct AppRootView: View {
         .frame(minHeight: 50)
         .background(WavepointTheme.keep)
         .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+      Button("CHANGE MUSIC SERVICE", action: changeProvider)
+        .font(.system(size: 11, weight: .bold, design: .monospaced))
+        .foregroundStyle(WavepointTheme.paper)
+        .frame(minHeight: 48)
     }
     .padding(24)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     .foregroundStyle(WavepointTheme.paper)
     .background(WavepointTheme.darkSurface)
     .accessibilityIdentifier(identifier)
+  }
+
+  private func selectSpotify() {
+    shouldStartSpotifySignIn = true
+    providerModel.selectSpotify()
+  }
+
+  private func retryAppleMusic() {
+    Task { await providerModel.retryAppleMusicEligibility() }
+  }
+
+  private func openSettings() {
+    guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+    openURL(url)
+  }
+
+  private func retryConnection() {
+    Task {
+      if case .failed = providerModel.state {
+        await providerModel.restore()
+      } else {
+        await spotifyModel.signIn()
+      }
+    }
+  }
+
+  private func changeProvider() {
+    spotifyCleanupModel.reset()
+    appleMusicCleanupModel.reset()
+    providerModel.clearSelection()
+  }
+
+  private func signOutSpotify() {
+    spotifyCleanupModel.reset()
+    Task {
+      await spotifyModel.signOut()
+      if spotifyModel.state == .signedOut {
+        providerModel.clearSelection()
+      }
+    }
+  }
+
+  private func deleteSpotifyAccount() {
+    spotifyCleanupModel.reset()
+    Task {
+      await spotifyModel.deleteAccount()
+      if spotifyModel.state == .signedOut {
+        providerModel.clearSelection()
+      }
+    }
   }
 }

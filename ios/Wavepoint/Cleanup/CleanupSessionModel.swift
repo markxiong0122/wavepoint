@@ -69,6 +69,7 @@ final class CleanupSessionModel {
 
   var completedCount: Int { decisions.count }
   var totalCount: Int { deck.count }
+  var requiresProviderChangeConfirmation: Bool { !decisions.isEmpty }
 
   func load() async {
     state = .loading

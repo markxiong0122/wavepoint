@@ -22,4 +22,54 @@ final class AppRootScreenTests: XCTestCase {
     )
     XCTAssertEqual(AppRootScreen(state: .failed("Try again")).accessibilityIdentifier, "auth-error")
   }
+
+  func testProviderAndSessionStatesRouteTheWholeApp() {
+    XCTAssertEqual(
+      AppRootScreen(providerState: .restoring, spotifyState: .signedOut),
+      .progress
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .providerPicker, spotifyState: .signedOut),
+      .providerPicker
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .spotifySelected, spotifyState: .signedOut),
+      .login
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .spotifySelected, spotifyState: .signedIn),
+      .cleanup(.spotify)
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .authorizingAppleMusic, spotifyState: .signedOut),
+      .progress
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicReady, spotifyState: .signedOut),
+      .cleanup(.appleMusic)
+    )
+  }
+
+  func testAppleMusicEligibilityStatesRouteToSpecificRecoveryScreens() {
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicPermissionDenied, spotifyState: .signedOut),
+      .appleMusicPermissionDenied
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicRestricted, spotifyState: .signedOut),
+      .appleMusicRestricted
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicSubscriptionRequired, spotifyState: .signedOut),
+      .appleMusicSubscriptionRequired
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicSyncLibraryRequired, spotifyState: .signedOut),
+      .appleMusicSyncLibraryRequired
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .failed("No music"), spotifyState: .signedOut),
+      .error("No music")
+    )
+  }
 }

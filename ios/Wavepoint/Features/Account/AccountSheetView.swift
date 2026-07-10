@@ -1,8 +1,29 @@
 import SwiftUI
 
+struct AccountProviderPresentation: Equatable, Sendable {
+  let provider: MusicProvider
+
+  var providerLine: String {
+    provider == .spotify ? "WAVEPOINT × SPOTIFY" : "WAVEPOINT × APPLE MUSIC"
+  }
+
+  var privacyCopy: String {
+    switch provider {
+    case .spotify:
+      "Wavepoint keeps your login identity in Supabase and Spotify credentials in this iPhone's Keychain. Your music library is read from Spotify and is not stored on Wavepoint servers."
+    case .appleMusic:
+      "Apple Music access stays on this iPhone. Wavepoint does not upload your Apple Music library or create a Wavepoint server account."
+    }
+  }
+
+  var showsAccountDeletion: Bool { provider == .spotify }
+}
+
 struct AccountSheetView: View {
+  let provider: MusicProvider
   let onSignOut: () -> Void
   let onDeleteAccount: () -> Void
+  let onChangeProvider: () -> Void
 
   @Environment(\.dismiss) private var dismiss
   @State private var isConfirmingDeletion = false
@@ -19,45 +40,57 @@ struct AccountSheetView: View {
         VStack(alignment: .leading, spacing: 2) {
           Text("YOUR ACCOUNT")
             .font(.system(size: 20, weight: .black, design: .rounded))
-          Text("WAVEPOINT × SPOTIFY")
+          Text(presentation.providerLine)
             .font(.system(size: 10, weight: .bold, design: .monospaced))
             .foregroundStyle(WavepointTheme.paper.opacity(0.62))
         }
       }
 
-      Text("Wavepoint keeps your login identity in Supabase and Spotify credentials in this iPhone's Keychain. Your music library is read from Spotify and is not stored on Wavepoint servers.")
+      Text(presentation.privacyCopy)
         .font(.system(size: 14, weight: .medium, design: .rounded))
         .foregroundStyle(WavepointTheme.paper.opacity(0.78))
 
+      if provider == .spotify {
+        Button {
+          dismiss()
+          onSignOut()
+        } label: {
+          accountButtonLabel("SIGN OUT", systemImage: "rectangle.portrait.and.arrow.right")
+        }
+        .buttonStyle(PressOffsetButtonStyle())
+      }
+
       Button {
         dismiss()
-        onSignOut()
+        onChangeProvider()
       } label: {
-        accountButtonLabel("SIGN OUT", systemImage: "rectangle.portrait.and.arrow.right")
+        accountButtonLabel("CHANGE MUSIC SERVICE", systemImage: "arrow.left.arrow.right")
       }
       .buttonStyle(PressOffsetButtonStyle())
 
-      Divider().overlay(WavepointTheme.paper.opacity(0.2))
+      if presentation.showsAccountDeletion {
+        Divider().overlay(WavepointTheme.paper.opacity(0.2))
 
-      VStack(alignment: .leading, spacing: 9) {
-        Text("DANGER ZONE")
-          .font(.system(size: 10, weight: .black, design: .monospaced))
-          .foregroundStyle(WavepointTheme.remove)
+        VStack(alignment: .leading, spacing: 9) {
+          Text("DANGER ZONE")
+            .font(.system(size: 10, weight: .black, design: .monospaced))
+            .foregroundStyle(WavepointTheme.remove)
 
-        Text("Deleting removes your Wavepoint account and local credentials. It does not delete your Spotify account or any songs.")
-          .font(.system(size: 12, weight: .semibold, design: .rounded))
-          .foregroundStyle(WavepointTheme.paper.opacity(0.72))
+          Text("Deleting removes your Wavepoint account and local credentials. It does not delete your Spotify account or any songs.")
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .foregroundStyle(WavepointTheme.paper.opacity(0.72))
 
-        Button {
-          isConfirmingDeletion = true
-        } label: {
-          accountButtonLabel(
-            "DELETE ACCOUNT",
-            systemImage: "trash",
-            fill: WavepointTheme.remove
-          )
+          Button {
+            isConfirmingDeletion = true
+          } label: {
+            accountButtonLabel(
+              "DELETE ACCOUNT",
+              systemImage: "trash",
+              fill: WavepointTheme.remove
+            )
+          }
+          .buttonStyle(PressOffsetButtonStyle())
         }
-        .buttonStyle(PressOffsetButtonStyle())
       }
 
       Spacer(minLength: 0)
@@ -77,6 +110,10 @@ struct AccountSheetView: View {
     } message: {
       Text("This permanently deletes your Wavepoint login record and clears Spotify credentials from this iPhone. Your Spotify account and songs stay untouched.")
     }
+  }
+
+  private var presentation: AccountProviderPresentation {
+    AccountProviderPresentation(provider: provider)
   }
 
   private func accountButtonLabel(

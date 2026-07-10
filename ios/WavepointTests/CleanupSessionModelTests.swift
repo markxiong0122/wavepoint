@@ -5,6 +5,19 @@ import XCTest
 
 @MainActor
 final class CleanupSessionModelTests: XCTestCase {
+  func testProviderChangeConfirmationIsRequiredOnlyAfterAUserDecision() async {
+    let service = FakeCleanupLibraryService(
+      tracks: [track(id: "one", addedAt: .distantPast)],
+      recentIDs: []
+    )
+    let model = CleanupSessionModel(service: service)
+
+    await model.load()
+    XCTAssertFalse(model.requiresProviderChangeConfirmation)
+
+    model.keepCurrentTrack()
+    XCTAssertTrue(model.requiresProviderChangeConfirmation)
+  }
   func testLoadBuildsRankedDeckAndStartsDeciding() async {
     let old = track(id: "old", addedAt: Date(timeIntervalSince1970: 100))
     let recent = track(id: "recent", addedAt: Date(timeIntervalSince1970: 0))

@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct WavepointApp: App {
-  private let sessionModel: AppSessionModel?
-  private let cleanupModel: CleanupSessionModel?
-  private let remotePlayback: SpotifyAppRemoteService?
+  private let providerModel: MusicProviderSessionModel?
+  private let spotifyModel: AppSessionModel?
+  private let spotifyCleanupModel: CleanupSessionModel?
+  private let spotifyPlayback: SpotifyAppRemoteService?
+  private let appleMusicCleanupModel: CleanupSessionModel?
+  private let appleMusicPlayback: AppleMusicTrackPlayer?
   private let startupError: String?
 
   init() {
@@ -24,11 +27,17 @@ struct WavepointApp: App {
       let spotifyClient = SpotifyWebAPIClient { forceRefresh in
         try await credentialProvider.accessToken(forceRefresh: forceRefresh)
       }
-      sessionModel = AppSessionModel(
-        authenticator: try SupabaseSpotifyAuthenticator(
-          client: supabaseClient,
-          callbackURL: configuration.callbackURL
-        ),
+
+      let providerModel = MusicProviderSessionModel(
+        appleMusicAuthorizer: MusicKitAuthorizationService(),
+        selectionStore: UserDefaultsMusicProviderSelectionStore()
+      )
+      let spotifyAuthenticator = try SupabaseSpotifyAuthenticator(
+        client: supabaseClient,
+        callbackURL: configuration.callbackURL
+      )
+      let spotifyModel = AppSessionModel(
+        authenticator: spotifyAuthenticator,
         tokenStore: tokenStore,
         accountDeleter: SupabaseAccountDeletionService(
           client: supabaseClient,
@@ -36,10 +45,8 @@ struct WavepointApp: App {
         ),
         eligibilityChecker: spotifyClient
       )
-      cleanupModel = CleanupSessionModel(
-        service: spotifyClient
-      )
-      remotePlayback = SpotifyAppRemoteService(
+      let spotifyCleanupModel = CleanupSessionModel(service: spotifyClient)
+      let spotifyPlayback = SpotifyAppRemoteService(
         client: SpotifySDKAppRemoteClient(
           clientID: configuration.spotifyClientID,
           callbackURL: configuration.spotifyAppRemoteCallbackURL
@@ -48,22 +55,56 @@ struct WavepointApp: App {
           try await credentialProvider.accessToken(forceRefresh: false)
         }
       )
-      startupError = nil
+
+      let songStore = MusicKitSongStore.shared
+      let dumpsterService = AppleMusicDumpsterService(
+        client: MusicKitPlaylistClient(songStore: songStore),
+        store: UserDefaultsDumpsterPlaylistStore()
+      )
+      let appleMusicService = AppleMusicLibraryService(
+        client: MusicKitLibraryClient(songStore: songStore)
+      ) { songIDs in
+        try await dumpsterService.commit(songIDs: songIDs)
+      }
+      let appleMusicCleanupModel = CleanupSessionModel(service: appleMusicService)
+      let appleMusicPlayback = AppleMusicTrackPlayer(
+        client: SystemAppleMusicPlayerClient(songStore: songStore)
+      )
+
+      self.providerModel = providerModel
+      self.spotifyModel = spotifyModel
+      self.spotifyCleanupModel = spotifyCleanupModel
+      self.spotifyPlayback = spotifyPlayback
+      self.appleMusicCleanupModel = appleMusicCleanupModel
+      self.appleMusicPlayback = appleMusicPlayback
+      self.startupError = nil
     } catch {
-      sessionModel = nil
-      cleanupModel = nil
-      remotePlayback = nil
+      providerModel = nil
+      spotifyModel = nil
+      spotifyCleanupModel = nil
+      spotifyPlayback = nil
+      appleMusicCleanupModel = nil
+      appleMusicPlayback = nil
       startupError = error.localizedDescription
     }
   }
 
   var body: some Scene {
     WindowGroup {
-      if let sessionModel, let cleanupModel, let remotePlayback {
+      if let providerModel,
+        let spotifyModel,
+        let spotifyCleanupModel,
+        let spotifyPlayback,
+        let appleMusicCleanupModel,
+        let appleMusicPlayback
+      {
         AppRootView(
-          model: sessionModel,
-          cleanupModel: cleanupModel,
-          remotePlayback: remotePlayback
+          providerModel: providerModel,
+          spotifyModel: spotifyModel,
+          spotifyCleanupModel: spotifyCleanupModel,
+          spotifyPlayback: spotifyPlayback,
+          appleMusicCleanupModel: appleMusicCleanupModel,
+          appleMusicPlayback: appleMusicPlayback
         )
       } else {
         ConfigurationRequiredView(message: startupError ?? "App configuration is missing.")

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SpotifyLoginView: View {
   let onSignIn: () -> Void
+  let onChangeProvider: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -63,6 +64,12 @@ struct SpotifyLoginView: View {
         .foregroundStyle(WavepointTheme.mutedInk)
         .lineSpacing(3)
         .padding(.top, 20)
+
+      Button("CHOOSE ANOTHER MUSIC SERVICE", action: onChangeProvider)
+        .font(.system(size: 10, weight: .bold, design: .monospaced))
+        .foregroundStyle(WavepointTheme.mutedInk)
+        .frame(minHeight: 48)
+        .padding(.top, 8)
     }
     .padding(.horizontal, 24)
     .padding(.vertical, 24)
