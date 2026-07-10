@@ -16,6 +16,7 @@ final class CleanupPlaybackCoordinator {
   let player: TrackPreviewPlayer
   private var currentTrackID: String?
   private var hasStartedDeck = false
+  private var presentationGeneration = 0
 
   init(player: TrackPreviewPlayer) {
     self.player = player
@@ -23,17 +24,23 @@ final class CleanupPlaybackCoordinator {
 
   func present(_ track: SpotifyTrack) async {
     guard currentTrackID != track.id || player.state != .playing else { return }
+    presentationGeneration += 1
+    let generation = presentationGeneration
     if state == .manual {
-      await continueManually(with: track)
+      await prepareManually(track, generation: generation)
       return
     }
     currentTrackID = track.id
     if !hasStartedDeck {
       state = .starting
     }
-    await player.stop()
+    if player.state != .ready, player.state != .unavailable {
+      await player.stop()
+      guard generation == presentationGeneration else { return }
+    }
     player.prepare(previewURL: nil, spotifyURI: track.uri)
     await player.togglePlayback()
+    guard generation == presentationGeneration else { return }
 
     if player.state == .playing {
       hasStartedDeck = true
@@ -49,11 +56,8 @@ final class CleanupPlaybackCoordinator {
   }
 
   func continueManually(with track: SpotifyTrack) async {
-    await player.stop()
-    currentTrackID = track.id
-    player.prepare(previewURL: track.previewURL, spotifyURI: track.uri)
-    hasStartedDeck = true
-    state = .manual
+    presentationGeneration += 1
+    await prepareManually(track, generation: presentationGeneration)
   }
 
   func retry(_ track: SpotifyTrack) async {
@@ -62,6 +66,24 @@ final class CleanupPlaybackCoordinator {
   }
 
   func stop() async {
+    presentationGeneration += 1
     await player.stop()
+    if !hasStartedDeck {
+      state = .idle
+    }
+  }
+
+  private func prepareManually(
+    _ track: SpotifyTrack,
+    generation: Int
+  ) async {
+    if player.state != .ready, player.state != .unavailable {
+      await player.stop()
+      guard generation == presentationGeneration else { return }
+    }
+    currentTrackID = track.id
+    player.prepare(previewURL: track.previewURL, spotifyURI: track.uri)
+    hasStartedDeck = true
+    state = .manual
   }
 }

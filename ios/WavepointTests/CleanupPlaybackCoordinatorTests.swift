@@ -152,6 +152,48 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
     XCTAssertEqual(remote.events.filter { if case .play = $0 { true } else { false } }.count, 2)
   }
 
+  func testStoppingThenPresentingSameTrackResumesWithoutDoublePause() async {
+    let remote = RecordingCleanupRemotePlayer()
+    let player = TrackPreviewPlayer(
+      engine: RecordingCleanupPreviewEngine(),
+      remote: remote,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    let coordinator = CleanupPlaybackCoordinator(player: player)
+    let track = spotifyTrack(id: "resume")
+
+    await coordinator.present(track)
+    await coordinator.stop()
+    await coordinator.present(track)
+
+    XCTAssertEqual(
+      remote.events,
+      [.play("spotify:track:resume"), .pause, .play("spotify:track:resume")]
+    )
+    await coordinator.stop()
+  }
+
+  func testStoppingInvalidatesPendingFirstStart() async {
+    let remote = ControlledCleanupRemotePlayer()
+    let player = TrackPreviewPlayer(
+      engine: RecordingCleanupPreviewEngine(),
+      remote: remote,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    let coordinator = CleanupPlaybackCoordinator(player: player)
+
+    let startTask = Task { @MainActor in
+      await coordinator.present(spotifyTrack(id: "pending"))
+    }
+    await remote.waitUntilPlayStarts()
+    await coordinator.stop()
+    remote.finishPlay()
+    await startTask.value
+
+    XCTAssertEqual(coordinator.state, .idle)
+    XCTAssertEqual(player.state, .ready)
+  }
+
   private func spotifyTrack(id: String, previewURL: URL? = nil) -> SpotifyTrack {
     SpotifyTrack(
       id: id,
@@ -222,4 +264,33 @@ private final class RecordingCleanupRemotePlayer: SpotifyRemotePlaying {
 
 private enum CleanupRemoteTestError: Error {
   case failed
+}
+
+@MainActor
+private final class ControlledCleanupRemotePlayer: SpotifyRemotePlaying {
+  private var playContinuation: CheckedContinuation<Void, Error>?
+  private var startContinuation: CheckedContinuation<Void, Never>?
+  private var didStart = false
+
+  func play(uri: String) async throws {
+    try await withCheckedThrowingContinuation { continuation in
+      playContinuation = continuation
+      didStart = true
+      startContinuation?.resume()
+      startContinuation = nil
+    }
+  }
+
+  func pause() async throws {}
+  func resume() async throws {}
+
+  func waitUntilPlayStarts() async {
+    guard !didStart else { return }
+    await withCheckedContinuation { startContinuation = $0 }
+  }
+
+  func finishPlay() {
+    playContinuation?.resume()
+    playContinuation = nil
+  }
 }
