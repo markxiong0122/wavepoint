@@ -40,6 +40,7 @@
 		83A9CB54821D817DA7E18A85 /* SpotifyAppRemoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF2D96B2B11A5BD87DD4398 /* SpotifyAppRemoteService.swift */; };
 		8584D271B566E60C10FD23C1 /* MusicProviderPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2983DEC23037005E08643981 /* MusicProviderPickerTests.swift */; };
 		8FC9B90685CE4735F3A59FF5 /* TrackPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D9E1AF5B4F688924C485C3 /* TrackPreviewPlayer.swift */; };
+		8FDDD7AFF8379B1400F03BFD /* ProjectConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1767D9DDE577F40EA5317DEA /* ProjectConfigurationTests.swift */; };
 		90FA00DAD64E841ADAF1D104 /* CleanupProviderPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BAEBC7A23FA02FDC12BE25 /* CleanupProviderPresentation.swift */; };
 		994D86FFD2B48824DE82D840 /* SpotifyAuthenticating.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDF49B87D168D7E43853177 /* SpotifyAuthenticating.swift */; };
 		9A3F1560A546B325AAB29849 /* CleanupLibraryServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40FCDFEBC1D9A7D37F61295 /* CleanupLibraryServing.swift */; };
@@ -87,6 +88,7 @@
 		0885F88820F423DF338D2139 /* SpotifySDKAppRemoteClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifySDKAppRemoteClient.swift; sourceTree = "<group>"; };
 		0BFA4C36113429F32FF594CA /* CleanupDeckBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupDeckBuilderTests.swift; sourceTree = "<group>"; };
 		1054182C94721EFFA9681FF0 /* SpotifyCredentialProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyCredentialProviderTests.swift; sourceTree = "<group>"; };
+		1767D9DDE577F40EA5317DEA /* ProjectConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectConfigurationTests.swift; sourceTree = "<group>"; };
 		22DC0B8A2456E253BAE1CFD5 /* AccountDeletionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionService.swift; sourceTree = "<group>"; };
 		27C749EB83AA44FB20ED5EF8 /* SpotifyWebAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyWebAPIClientTests.swift; sourceTree = "<group>"; };
 		290CCEA1662B6B4F85BD1497 /* CleanupPlaybackCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupPlaybackCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 				79B08F3C0961A318163802EA /* CleanupSessionModelTests.swift */,
 				2983DEC23037005E08643981 /* MusicProviderPickerTests.swift */,
 				B258C34131527A947FC16E90 /* MusicProviderSessionModelTests.swift */,
+				1767D9DDE577F40EA5317DEA /* ProjectConfigurationTests.swift */,
 				B132EFB810181821F32DA339 /* ScaffoldTests.swift */,
 				9E501509193C720F18B7CDF5 /* SpotifyAppRemoteServiceTests.swift */,
 				9DD18CF3D5ABCA6CE44478A4 /* SpotifyAuthorizationRequestTests.swift */,
@@ -515,6 +518,7 @@
 				7AD842E90A9AA8F2DF30CDCE /* CleanupSessionModelTests.swift in Sources */,
 				8584D271B566E60C10FD23C1 /* MusicProviderPickerTests.swift in Sources */,
 				46C307B2FA13CBA525A9D5E0 /* MusicProviderSessionModelTests.swift in Sources */,
+				8FDDD7AFF8379B1400F03BFD /* ProjectConfigurationTests.swift in Sources */,
 				366FB2F96FE30CDEF3A59B7D /* ScaffoldTests.swift in Sources */,
 				A907F1AFD9BBFCB28885F641 /* SpotifyAppRemoteServiceTests.swift in Sources */,
 				17BAE05340058A6E4F191E9E /* SpotifyAuthorizationRequestTests.swift in Sources */,
@@ -599,7 +603,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = HV58968J2R;
 				INFOPLIST_FILE = Wavepoint/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -700,7 +704,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = HV58968J2R;
 				INFOPLIST_FILE = Wavepoint/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

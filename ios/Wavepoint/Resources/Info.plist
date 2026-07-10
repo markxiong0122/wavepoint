@@ -39,6 +39,8 @@
 	<array>
 		<string>spotify</string>
 	</array>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Wavepoint uses your Apple Music library to play cleanup samples and create a Dumpster playlist for songs you choose to review.</string>
 	<key>OAUTH_CALLBACK_URL</key>
 	<string>$(OAUTH_CALLBACK_URL)</string>
 	<key>SPOTIFY_APP_REMOTE_CALLBACK_URL</key>
