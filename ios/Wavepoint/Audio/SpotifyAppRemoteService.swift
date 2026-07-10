@@ -40,7 +40,8 @@ enum SpotifyAppRemoteServiceError: LocalizedError, Equatable {
 }
 
 @MainActor
-final class SpotifyAppRemoteService: SpotifyRemotePlaying {
+final class SpotifyAppRemoteService: RemoteTrackPlaying {
+  let provider = MusicProvider.spotify
   private let client: any SpotifyAppRemoteClient
   private let accessToken: @MainActor () async throws -> String
   private let authorizationTimeoutSleep: @MainActor (Duration) async -> Void
@@ -73,6 +74,10 @@ final class SpotifyAppRemoteService: SpotifyRemotePlaying {
     }
 
     try await client.play(uri: uri)
+  }
+
+  func play(trackID: String) async throws {
+    try await play(uri: trackID)
   }
 
   func pause() async throws {

@@ -176,14 +176,28 @@ struct TrackCardView: View {
     switch previewPlayer.state {
     case .unavailable: "PREVIEW UNAVAILABLE"
     case .ready:
-      previewPlayer.source == .spotifyRemote
-        ? "PLAY 15S IN SPOTIFY"
-        : "PLAY 15S PREVIEW"
-    case .connecting: "CONNECTING TO SPOTIFY…"
+      switch previewPlayer.source {
+      case .spotifyRemote: "PLAY 15S IN SPOTIFY"
+      case .appleMusic: "PLAY 15S IN MUSIC"
+      case .directPreview: "PLAY 15S PREVIEW"
+      case .unavailable: "PREVIEW UNAVAILABLE"
+      }
+    case .connecting:
+      previewPlayer.source == .appleMusic
+        ? "STARTING APPLE MUSIC…"
+        : "CONNECTING TO SPOTIFY…"
     case .playing:
-      previewPlayer.source == .spotifyRemote ? "PAUSE SPOTIFY" : "PAUSE PREVIEW"
+      switch previewPlayer.source {
+      case .spotifyRemote: "PAUSE SPOTIFY"
+      case .appleMusic: "PAUSE APPLE MUSIC"
+      case .directPreview, .unavailable: "PAUSE PREVIEW"
+      }
     case .paused:
-      previewPlayer.source == .spotifyRemote ? "RESUME SPOTIFY" : "RESUME PREVIEW"
+      switch previewPlayer.source {
+      case .spotifyRemote: "RESUME SPOTIFY"
+      case .appleMusic: "RESUME APPLE MUSIC"
+      case .directPreview, .unavailable: "RESUME PREVIEW"
+      }
     }
   }
 

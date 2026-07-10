@@ -1,13 +1,21 @@
 import MusicKit
 
 struct MusicKitLibraryClient: AppleMusicLibraryClient {
+  private let songStore: MusicKitSongStore
+
+  init(songStore: MusicKitSongStore = .shared) {
+    self.songStore = songStore
+  }
+
   func fetchLibraryPage(offset: Int, limit: Int) async throws -> AppleMusicSongPage {
     var request = MusicLibraryRequest<Song>()
     request.offset = offset
     request.limit = limit
     let response = try await request.response()
+    let songs = Array(response.items)
+    await songStore.store(songs)
     return AppleMusicSongPage(
-      songs: response.items.map(Self.record(from:)),
+      songs: songs.map(Self.record(from:)),
       hasNextPage: response.items.hasNextBatch
     )
   }

@@ -37,7 +37,7 @@ final class CleanupPlaybackCoordinator {
       await player.stop()
       guard generation == presentationGeneration else { return }
     }
-    player.prepare(previewURL: nil, spotifyURI: track.playbackID)
+    player.prepare(previewURL: nil, playbackID: track.playbackID)
     await player.togglePlayback()
     guard generation == presentationGeneration else { return }
 
@@ -45,7 +45,7 @@ final class CleanupPlaybackCoordinator {
       hasStartedDeck = true
       state = .automatic
     } else if hasStartedDeck {
-      player.prepare(previewURL: track.previewURL, spotifyURI: track.playbackID)
+      player.prepare(previewURL: track.previewURL, playbackID: track.playbackID)
       state = .manual
     } else {
       state = .failed(
@@ -81,7 +81,7 @@ final class CleanupPlaybackCoordinator {
       guard generation == presentationGeneration else { return }
     }
     currentTrackID = track.id
-    player.prepare(previewURL: track.previewURL, spotifyURI: track.playbackID)
+    player.prepare(previewURL: track.previewURL, playbackID: track.playbackID)
     hasStartedDeck = true
     state = .manual
   }

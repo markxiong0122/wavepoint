@@ -10,7 +10,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
       remote: RecordingRemotePlayer()
     )
 
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:missing-preview")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:missing-preview")
 
     XCTAssertEqual(player.state, .ready)
     XCTAssertEqual(player.source, .spotifyRemote)
@@ -22,7 +22,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
       remote: RecordingRemotePlayer()
     )
 
-    player.prepare(previewURL: nil, spotifyURI: nil)
+    player.prepare(previewURL: nil, playbackID: nil)
 
     XCTAssertEqual(player.state, .unavailable)
     XCTAssertEqual(player.source, .unavailable)
@@ -33,7 +33,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
     let remote = RecordingRemotePlayer()
     let player = TrackPreviewPlayer(engine: engine, remote: remote)
     let url = URL(string: "https://audio.example/preview.mp3")!
-    player.prepare(previewURL: url, spotifyURI: "spotify:track:has-preview")
+    player.prepare(previewURL: url, playbackID: "spotify:track:has-preview")
 
     await player.togglePlayback()
     XCTAssertEqual(player.state, .playing)
@@ -56,7 +56,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
       remote: remote,
       segmentSleep: { _ in }
     )
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:remote")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:remote")
 
     await player.togglePlayback()
     await Task.yield()
@@ -71,13 +71,13 @@ final class TrackPreviewPlayerTests: XCTestCase {
     let player = TrackPreviewPlayer(engine: engine, remote: RecordingRemotePlayer())
     player.prepare(
       previewURL: URL(string: "https://audio.example/one.mp3"),
-      spotifyURI: "spotify:track:one"
+      playbackID: "spotify:track:one"
     )
     await player.togglePlayback()
 
     player.prepare(
       previewURL: URL(string: "https://audio.example/two.mp3"),
-      spotifyURI: "spotify:track:two"
+      playbackID: "spotify:track:two"
     )
 
     XCTAssertEqual(player.state, .ready)
@@ -87,7 +87,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
   func testRemoteFailureReturnsToReadyWithUsefulError() async {
     let remote = RecordingRemotePlayer(error: RemoteTestError.failed)
     let player = TrackPreviewPlayer(engine: RecordingPreviewEngine(), remote: remote)
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:failure")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:failure")
 
     await player.togglePlayback()
 
@@ -98,7 +98,7 @@ final class TrackPreviewPlayerTests: XCTestCase {
   func testRemoteAuthorizationFailureSurfacesItsActionableMessage() async {
     let remote = RecordingRemotePlayer(error: SpotifyAppRemoteServiceError.authorizationTimedOut)
     let player = TrackPreviewPlayer(engine: RecordingPreviewEngine(), remote: remote)
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:timeout")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:timeout")
 
     await player.togglePlayback()
 
@@ -113,13 +113,13 @@ final class TrackPreviewPlayerTests: XCTestCase {
       remote: remote,
       segmentSleep: { duration in try? await Task.sleep(for: duration) }
     )
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:a")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:a")
 
     let oldStart = Task { @MainActor in
       await player.togglePlayback()
     }
     await remote.waitUntilPlayStarts()
-    player.prepare(previewURL: nil, spotifyURI: "spotify:track:b")
+    player.prepare(previewURL: nil, playbackID: "spotify:track:b")
     remote.finishPlay()
     await oldStart.value
 
@@ -146,7 +146,8 @@ private final class RecordingPreviewEngine: TrackPreviewPlaybackEngine {
 }
 
 @MainActor
-private final class RecordingRemotePlayer: SpotifyRemotePlaying {
+private final class RecordingRemotePlayer: RemoteTrackPlaying {
+  let provider = MusicProvider.spotify
   enum Event: Equatable {
     case play(String)
     case pause
@@ -160,8 +161,8 @@ private final class RecordingRemotePlayer: SpotifyRemotePlaying {
     self.error = error
   }
 
-  func play(uri: String) async throws {
-    events.append(.play(uri))
+  func play(trackID: String) async throws {
+    events.append(.play(trackID))
     if let error { throw error }
   }
 
@@ -181,12 +182,13 @@ private enum RemoteTestError: Error {
 }
 
 @MainActor
-private final class ControlledRemotePlayer: SpotifyRemotePlaying {
+private final class ControlledRemotePlayer: RemoteTrackPlaying {
+  let provider = MusicProvider.spotify
   private var playContinuation: CheckedContinuation<Void, Error>?
   private var startContinuation: CheckedContinuation<Void, Never>?
   private var didStart = false
 
-  func play(uri: String) async throws {
+  func play(trackID: String) async throws {
     try await withCheckedThrowingContinuation { continuation in
       playContinuation = continuation
       didStart = true

@@ -14,6 +14,7 @@ enum TrackPlaybackSource: Equatable, Sendable {
   case unavailable
   case directPreview
   case spotifyRemote
+  case appleMusic
 }
 
 @MainActor
@@ -22,13 +23,6 @@ protocol TrackPreviewPlaybackEngine: AnyObject {
   func pause()
   func resume()
   func stop()
-}
-
-@MainActor
-protocol SpotifyRemotePlaying: AnyObject {
-  func play(uri: String) async throws
-  func pause() async throws
-  func resume() async throws
 }
 
 @MainActor
@@ -64,16 +58,16 @@ final class TrackPreviewPlayer {
   private(set) var errorMessage: String?
 
   private let engine: any TrackPreviewPlaybackEngine
-  private let remote: (any SpotifyRemotePlaying)?
+  private let remote: (any RemoteTrackPlaying)?
   private let segmentSleep: @Sendable (Duration) async -> Void
   private var previewURL: URL?
-  private var spotifyURI: String?
+  private var playbackID: String?
   private var stopTask: Task<Void, Never>?
   private var playbackGeneration = 0
 
   init(
     engine: any TrackPreviewPlaybackEngine = AVPlayerPreviewEngine(),
-    remote: (any SpotifyRemotePlaying)? = nil,
+    remote: (any RemoteTrackPlaying)? = nil,
     segmentSleep: @escaping @Sendable (Duration) async -> Void = { duration in
       try? await Task.sleep(for: duration)
     }
@@ -83,21 +77,21 @@ final class TrackPreviewPlayer {
     self.segmentSleep = segmentSleep
   }
 
-  func prepare(previewURL: URL?, spotifyURI: String?) {
+  func prepare(previewURL: URL?, playbackID: String?) {
     playbackGeneration += 1
     stopTask?.cancel()
     if self.previewURL != nil {
       engine.stop()
     }
     self.previewURL = previewURL
-    self.spotifyURI = spotifyURI
+    self.playbackID = playbackID
     errorMessage = nil
 
     if previewURL != nil {
       source = .directPreview
       state = .ready
-    } else if remote != nil, spotifyURI?.isEmpty == false {
-      source = .spotifyRemote
+    } else if let remote, playbackID?.isEmpty == false {
+      source = remote.provider == .spotify ? .spotifyRemote : .appleMusic
       state = .ready
     } else {
       source = .unavailable
@@ -127,7 +121,7 @@ final class TrackPreviewPlayer {
     switch source {
     case .directPreview:
       engine.stop()
-    case .spotifyRemote:
+    case .spotifyRemote, .appleMusic:
       try? await remote?.pause()
     case .unavailable:
       break
@@ -142,7 +136,7 @@ final class TrackPreviewPlayer {
     switch source {
     case .directPreview:
       engine.stop()
-    case .spotifyRemote:
+    case .spotifyRemote, .appleMusic:
       try? await remote?.pause()
     case .unavailable:
       break
@@ -157,10 +151,10 @@ final class TrackPreviewPlayer {
       case .directPreview:
         guard let previewURL else { return }
         engine.play(url: previewURL)
-      case .spotifyRemote:
-        guard let remote, let spotifyURI else { return }
+      case .spotifyRemote, .appleMusic:
+        guard let remote, let playbackID else { return }
         state = .connecting
-        try await remote.play(uri: spotifyURI)
+        try await remote.play(trackID: playbackID)
       case .unavailable:
         return
       }
@@ -170,8 +164,7 @@ final class TrackPreviewPlayer {
     } catch {
       guard generation == playbackGeneration else { return }
       state = .ready
-      errorMessage = (error as? LocalizedError)?.errorDescription
-        ?? "Spotify couldn't play this track. Open it in Spotify instead."
+      errorMessage = (error as? LocalizedError)?.errorDescription ?? fallbackPlaybackError
     }
   }
 
@@ -180,7 +173,7 @@ final class TrackPreviewPlayer {
       switch source {
       case .directPreview:
         engine.pause()
-      case .spotifyRemote:
+      case .spotifyRemote, .appleMusic:
         try await remote?.pause()
       case .unavailable:
         return
@@ -197,7 +190,7 @@ final class TrackPreviewPlayer {
       switch source {
       case .directPreview:
         engine.resume()
-      case .spotifyRemote:
+      case .spotifyRemote, .appleMusic:
         try await remote?.resume()
       case .unavailable:
         return
@@ -218,5 +211,11 @@ final class TrackPreviewPlayer {
       guard !Task.isCancelled else { return }
       await self?.finishSegment()
     }
+  }
+
+  private var fallbackPlaybackError: String {
+    remote?.provider == .appleMusic
+      ? "Apple Music couldn't play this track. Open it in Music instead."
+      : "Spotify couldn't play this track. Open it in Spotify instead."
   }
 }

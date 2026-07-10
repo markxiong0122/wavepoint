@@ -220,7 +220,8 @@ private final class RecordingCleanupPreviewEngine: TrackPreviewPlaybackEngine {
 }
 
 @MainActor
-private final class RecordingCleanupRemotePlayer: SpotifyRemotePlaying {
+private final class RecordingCleanupRemotePlayer: RemoteTrackPlaying {
+  let provider = MusicProvider.spotify
   enum Event: Equatable {
     case play(String)
     case pause
@@ -243,8 +244,8 @@ private final class RecordingCleanupRemotePlayer: SpotifyRemotePlaying {
     self.failOnPlayCall = failOnPlayCall
   }
 
-  func play(uri: String) async throws {
-    events.append(.play(uri))
+  func play(trackID: String) async throws {
+    events.append(.play(trackID))
     playCallCount += 1
     if let error, failOnPlayCall == playCallCount {
       throw error
@@ -269,12 +270,13 @@ private enum CleanupRemoteTestError: Error {
 }
 
 @MainActor
-private final class ControlledCleanupRemotePlayer: SpotifyRemotePlaying {
+private final class ControlledCleanupRemotePlayer: RemoteTrackPlaying {
+  let provider = MusicProvider.spotify
   private var playContinuation: CheckedContinuation<Void, Error>?
   private var startContinuation: CheckedContinuation<Void, Never>?
   private var didStart = false
 
-  func play(uri: String) async throws {
+  func play(trackID: String) async throws {
     try await withCheckedThrowingContinuation { continuation in
       playContinuation = continuation
       didStart = true
