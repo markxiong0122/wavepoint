@@ -78,14 +78,17 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing {
     for startIndex in stride(from: 0, to: uris.count, by: 40) {
       let endIndex = min(startIndex + 40, uris.count)
       let chunk = Array(uris[startIndex..<endIndex])
-      let body = try JSONEncoder().encode(RemovalBody(uris: chunk))
+      let url =
+        baseURL
+        .appending(path: "me/library")
+        .appending(queryItems: [
+          URLQueryItem(name: "uris", value: chunk.joined(separator: ","))
+        ])
 
       do {
         _ = try await sendAuthorizedRequest(
-          to: baseURL.appending(path: "me/library"),
-          method: "DELETE",
-          body: body,
-          contentType: "application/json"
+          to: url,
+          method: "DELETE"
         )
         removedCount += chunk.count
       } catch {
@@ -282,10 +285,6 @@ private struct ImagePayload: Decodable {
 
 private struct ExternalURLs: Decodable {
   let spotify: URL?
-}
-
-private struct RemovalBody: Encodable {
-  let uris: [String]
 }
 
 private enum SpotifyDateParser {

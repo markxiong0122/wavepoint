@@ -83,7 +83,7 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     )
   }
 
-  func testRemovalChunksFortyOneURIsIntoFortyAndOne() async throws {
+  func testRemovalSendsFortyURIsPerQueryParameter() async throws {
     let transport = RecordingSpotifyTransport(responses: [
       response(status: 200, body: "{}"),
       response(status: 200, body: "{}"),
@@ -93,15 +93,19 @@ final class SpotifyWebAPIClientTests: XCTestCase {
 
     let removedCount = try await client.removeFromLibrary(uris: uris)
     let requests = await transport.requests
-    let bodies = try requests.map { request -> [String] in
-      let object = try JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody))
-      return try XCTUnwrap((object as? [String: [String]])?["uris"])
+    let uriQueries = try requests.map { request -> [String] in
+      let components = try XCTUnwrap(
+        URLComponents(url: XCTUnwrap(request.url), resolvingAgainstBaseURL: false)
+      )
+      let value = try XCTUnwrap(components.queryItems?.first { $0.name == "uris" }?.value)
+      return value.split(separator: ",").map(String.init)
     }
 
     XCTAssertEqual(removedCount, 41)
     XCTAssertEqual(requests.map(\.httpMethod), ["DELETE", "DELETE"])
     XCTAssertEqual(requests.map(\.url?.path), ["/v1/me/library", "/v1/me/library"])
-    XCTAssertEqual(bodies.map(\.count), [40, 1])
+    XCTAssertEqual(uriQueries, [Array(uris.prefix(40)), Array(uris.suffix(1))])
+    XCTAssertTrue(requests.allSatisfy { $0.httpBody == nil })
   }
 
   func testRemovingNothingPerformsNoRequest() async throws {
