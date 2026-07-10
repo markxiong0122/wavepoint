@@ -1,4 +1,3 @@
-import Foundation
 import Observation
 
 enum CleanupPlaybackState: Equatable, Sendable {
@@ -34,7 +33,7 @@ final class CleanupPlaybackCoordinator {
     if !hasStartedDeck {
       state = .starting
     }
-    if player.state != .ready, player.state != .unavailable {
+    if playerNeedsStop {
       await player.stop()
       guard generation == presentationGeneration else { return }
     }
@@ -77,7 +76,7 @@ final class CleanupPlaybackCoordinator {
     _ track: SpotifyTrack,
     generation: Int
   ) async {
-    if player.state != .ready, player.state != .unavailable {
+    if playerNeedsStop {
       await player.stop()
       guard generation == presentationGeneration else { return }
     }
@@ -85,5 +84,9 @@ final class CleanupPlaybackCoordinator {
     player.prepare(previewURL: track.previewURL, spotifyURI: track.uri)
     hasStartedDeck = true
     state = .manual
+  }
+
+  private var playerNeedsStop: Bool {
+    player.state != .ready && player.state != .unavailable
   }
 }

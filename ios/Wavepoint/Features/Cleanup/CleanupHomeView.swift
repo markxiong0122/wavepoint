@@ -143,7 +143,8 @@ struct CleanupHomeView: View {
   }
 
   private var playbackTaskID: String {
-    "\(CleanupScreen(state: model.state).accessibilityIdentifier):\(model.currentTrack?.id ?? "none")"
+    let screen = CleanupScreen(state: model.state).accessibilityIdentifier
+    return "\(screen):\(model.currentTrack?.id ?? "none")"
   }
 
   private var loadingView: some View {

@@ -13,24 +13,6 @@ struct TrackCardView: View {
   @State private var dragOffset: CGSize = .zero
   @State private var isCommittingDecision = false
 
-  init(
-    track: SpotifyTrack,
-    position: Int,
-    total: Int,
-    previewPlayer: TrackPreviewPlayer,
-    showsSpotifyConnectionHint: Bool,
-    onRemove: @escaping () -> Void,
-    onKeep: @escaping () -> Void
-  ) {
-    self.track = track
-    self.position = position
-    self.total = total
-    self.previewPlayer = previewPlayer
-    self.showsSpotifyConnectionHint = showsSpotifyConnectionHint
-    self.onRemove = onRemove
-    self.onKeep = onKeep
-  }
-
   var body: some View {
     GeometryReader { proxy in
       card
