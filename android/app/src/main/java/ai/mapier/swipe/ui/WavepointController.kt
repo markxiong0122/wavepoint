@@ -170,10 +170,14 @@ class WavepointController(
 
   fun retry() {
     scope.launch {
-      if (cleanupSession.state == CleanupSessionState.REVIEWING) {
-        presentCleanup(autoplay = false)
-      } else {
-        loadLibrary()
+      when {
+        cleanupSession.state == CleanupSessionState.REVIEWING ->
+          presentCleanup(autoplay = false)
+        appSession.state == AppSessionState.SIGNED_IN -> loadLibrary()
+        else -> {
+          appSession.startSignIn()
+          routeSession()
+        }
       }
     }
   }

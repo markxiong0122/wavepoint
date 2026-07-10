@@ -18,8 +18,8 @@ import ai.mapier.swipe.cleanup.CleanupSession
 import ai.mapier.swipe.spotify.SpotifyWebApiClient
 import ai.mapier.swipe.ui.WavepointController
 import android.content.Context
-import kotlinx.coroutines.CoroutineScope
 import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.CoroutineScope
 
 data class WavepointRuntime(
   val controller: WavepointController,

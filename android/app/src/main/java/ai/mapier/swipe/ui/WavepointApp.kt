@@ -72,7 +72,6 @@ data class WavepointActions(
   val onPreview: () -> Unit = {},
   val onOpenTrack: (String) -> Unit = {},
   val onStartAgain: () -> Unit = {},
-  val onOpenSpotify: () -> Unit = {},
   val onSignOut: () -> Unit = {},
   val onDeleteAccount: () -> Unit = {},
   val onAccount: () -> Unit = {},

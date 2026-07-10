@@ -156,15 +156,34 @@ class WavepointControllerTest {
     assertEquals("Account was not deleted.", error.message)
   }
 
+  @Test
+  fun retryAfterOAuthFailureStartsSpotifySignInAgain() = runTest {
+    val authenticator = RestoredAuthenticator()
+    val controller = controller(
+      eligibility = SpotifyAccountEligibility.PREMIUM,
+      library = FakeLibraryService(listOf(track("one"))),
+      authenticator = authenticator,
+    )
+    controller.rejectAuth(IllegalStateException("Spotify sign-in was cancelled."))
+    runCurrent()
+
+    controller.retry()
+    runCurrent()
+
+    assertEquals(1, authenticator.startSignInCalls)
+    assertEquals(WavepointUiState.Authorizing, controller.state.value)
+  }
+
   private fun kotlinx.coroutines.test.TestScope.controller(
     eligibility: SpotifyAccountEligibility,
     library: FakeLibraryService,
     gateway: FakeRemoteGateway = FakeRemoteGateway(),
     accountDeleting: AccountDeleting = FakeAccountDeleting(),
+    authenticator: RestoredAuthenticator = RestoredAuthenticator(),
   ): WavepointController {
     val tokens = MemoryTokenStore(SpotifyProviderTokens("access", "refresh"))
     val appSession = AppSession(
-      authenticator = RestoredAuthenticator(),
+      authenticator = authenticator,
       tokenStore = tokens,
       eligibilityChecker = FixedEligibility(eligibility),
     )
@@ -215,8 +234,12 @@ private class FakeLibraryService(
 }
 
 private class RestoredAuthenticator : SpotifyAuthenticator {
+  var startSignInCalls = 0
+
   override suspend fun restoreSession() = SpotifyAuthSession("supabase", providerTokens = null)
-  override suspend fun startSignIn() = Unit
+  override suspend fun startSignIn() {
+    startSignInCalls += 1
+  }
   override suspend fun signOut() = Unit
   override suspend fun clearLocalSession() = Unit
 }
