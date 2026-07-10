@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RemovalReviewView: View {
-  let tracks: [SpotifyTrack]
+  let tracks: [LibraryTrack]
   let onCancel: () -> Void
   let onConfirm: () -> Void
 
@@ -36,7 +36,7 @@ struct RemovalReviewView: View {
               .clipped()
 
               VStack(alignment: .leading, spacing: 4) {
-                Text(track.name)
+                Text(track.title)
                   .font(.system(size: 15, weight: .bold, design: .rounded))
                   .lineLimit(1)
                 Text(track.artistLine)

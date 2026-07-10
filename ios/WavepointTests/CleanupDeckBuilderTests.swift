@@ -44,15 +44,37 @@ final class CleanupDeckBuilderTests: XCTestCase {
     XCTAssertEqual(deck.count, 50)
   }
 
-  private func track(id: String, addedAt: Date) -> SpotifyTrack {
-    SpotifyTrack(
-      id: id,
-      uri: "spotify:track:\(id)",
-      name: "Track \(id)",
+  func testMissingAddedDateUsesNeutralAgeWeight() {
+    let track = LibraryTrack(
+      id: "unknown-date",
+      provider: .appleMusic,
+      playbackID: "unknown-date",
+      commitID: "unknown-date",
+      title: "Unknown Date",
       artistNames: ["Artist"],
       artworkURL: nil,
       previewURL: nil,
-      spotifyURL: URL(string: "https://open.spotify.com/track/\(id)")!,
+      destinationURL: nil,
+      durationMilliseconds: 180_000,
+      addedAt: nil
+    )
+    let builder = CleanupDeckBuilder(referenceDate: date("2026-01-01T00:00:00Z"))
+
+    XCTAssertEqual(builder.selectionWeight(for: track, recentTrackIDs: []), 1)
+    XCTAssertEqual(builder.selectionWeight(for: track, recentTrackIDs: [track.id]), 0.2)
+  }
+
+  private func track(id: String, addedAt: Date) -> LibraryTrack {
+    LibraryTrack(
+      id: id,
+      provider: .spotify,
+      playbackID: "spotify:track:\(id)",
+      commitID: "spotify:track:\(id)",
+      title: "Track \(id)",
+      artistNames: ["Artist"],
+      artworkURL: nil,
+      previewURL: nil,
+      destinationURL: URL(string: "https://open.spotify.com/track/\(id)")!,
       durationMilliseconds: 180_000,
       addedAt: addedAt
     )

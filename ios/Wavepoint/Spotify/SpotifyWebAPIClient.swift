@@ -25,12 +25,6 @@ struct URLSessionSpotifyTransport: SpotifyHTTPTransport {
   }
 }
 
-protocol SpotifyLibraryServing: Sendable {
-  func fetchSavedTracks() async throws -> [SpotifyTrack]
-  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String>
-  func removeFromLibrary(uris: [String]) async throws -> Int
-}
-
 enum SpotifyAccountEligibility: Equatable, Sendable {
   case premium
   case free
@@ -41,7 +35,7 @@ protocol SpotifyAccountEligibilityChecking: Sendable {
   func fetchAccountEligibility() async throws -> SpotifyAccountEligibility
 }
 
-struct SpotifyWebAPIClient: SpotifyLibraryServing, SpotifyAccountEligibilityChecking {
+struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChecking {
   private let transport: any SpotifyHTTPTransport
   private let accessToken: @Sendable (Bool) async throws -> String
   private let baseURL = URL(string: "https://api.spotify.com/v1")!
@@ -71,17 +65,25 @@ struct SpotifyWebAPIClient: SpotifyLibraryServing, SpotifyAccountEligibilityChec
     }
   }
 
-  func fetchSavedTracks() async throws -> [SpotifyTrack] {
+  func fetchLibraryTracks() async throws -> [LibraryTrack] {
+    try await fetchSavedTracks()
+  }
+
+  func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
+    CleanupCommitResult(committedCount: try await removeFromLibrary(uris: trackIDs))
+  }
+
+  func fetchSavedTracks() async throws -> [LibraryTrack] {
     var nextURL: URL? =
       baseURL
       .appending(path: "me/tracks")
       .appending(queryItems: [URLQueryItem(name: "limit", value: "50")])
-    var tracks: [SpotifyTrack] = []
+    var tracks: [LibraryTrack] = []
 
     while let url = nextURL {
       let response = try await sendAuthorizedRequest(to: url)
       let page = try decode(SavedTracksPage.self, from: response.data)
-      tracks.append(contentsOf: page.items.compactMap(\.spotifyTrack))
+      tracks.append(contentsOf: page.items.compactMap(\.libraryTrack))
       nextURL = page.next
     }
 
@@ -258,21 +260,23 @@ private struct SavedTrackItem: Decodable {
     case track
   }
 
-  var spotifyTrack: SpotifyTrack? {
+  var libraryTrack: LibraryTrack? {
     guard
       let id = track.id,
       let spotifyURL = track.externalURLs.spotify,
       let addedDate = SpotifyDateParser.date(from: addedAt)
     else { return nil }
 
-    return SpotifyTrack(
+    return LibraryTrack(
       id: id,
-      uri: track.uri,
-      name: track.name,
+      provider: .spotify,
+      playbackID: track.uri,
+      commitID: track.uri,
+      title: track.name,
       artistNames: track.artists.map(\.name),
       artworkURL: track.album.images.first?.url,
       previewURL: track.previewURL,
-      spotifyURL: spotifyURL,
+      destinationURL: spotifyURL,
       durationMilliseconds: track.durationMilliseconds,
       addedAt: addedDate
     )

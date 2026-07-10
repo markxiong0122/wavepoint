@@ -13,10 +13,10 @@ struct CleanupDeckBuilder: Sendable {
   }
 
   func build(
-    from tracks: [SpotifyTrack],
+    from tracks: [LibraryTrack],
     recentTrackIDs: Set<String>,
     seed: UInt64 = UInt64.random(in: UInt64.min...UInt64.max)
-  ) -> [SpotifyTrack] {
+  ) -> [LibraryTrack] {
     var generator = SplitMix64(seed: seed)
 
     return
@@ -43,13 +43,12 @@ struct CleanupDeckBuilder: Sendable {
   }
 
   func selectionWeight(
-    for track: SpotifyTrack,
+    for track: LibraryTrack,
     recentTrackIDs: Set<String>
   ) -> Double {
-    let ageInYears = max(
-      0,
-      referenceDate.timeIntervalSince(track.addedAt) / (365.25 * 24 * 60 * 60)
-    )
+    let ageInYears = track.addedAt.map {
+      max(0, referenceDate.timeIntervalSince($0) / (365.25 * 24 * 60 * 60))
+    } ?? 0
     let ageWeight = 1 + min(ageInYears, 12)
     let rotationWeight = recentTrackIDs.contains(track.id) ? 0.2 : 1
     return ageWeight * rotationWeight

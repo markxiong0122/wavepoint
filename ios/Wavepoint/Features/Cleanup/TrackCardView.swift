@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TrackCardView: View {
-  let track: SpotifyTrack
+  let track: LibraryTrack
   let position: Int
   let total: Int
   let previewPlayer: TrackPreviewPlayer
@@ -32,14 +32,14 @@ struct TrackCardView: View {
 
       VStack(alignment: .leading, spacing: 10) {
         HStack {
-          Text("SAVED \(track.addedAt.formatted(.dateTime.year()))")
+          Text(savedDateLabel)
           Spacer()
           Text("\(position) / \(total)")
         }
         .font(.system(size: 10, weight: .bold, design: .monospaced))
         .foregroundStyle(WavepointTheme.mutedInk)
 
-        Text(track.name)
+        Text(track.title)
           .font(.system(size: 29, weight: .black, design: .rounded))
           .tracking(-1.1)
           .lineLimit(2)
@@ -67,13 +67,15 @@ struct TrackCardView: View {
             .foregroundStyle(WavepointTheme.remove)
         }
 
-        Link(destination: track.spotifyURL) {
-          Label("OPEN IN SPOTIFY", systemImage: "arrow.up.right")
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .foregroundStyle(WavepointTheme.ink)
-            .frame(minHeight: 32)
+        if let destinationURL = track.destinationURL {
+          Link(destination: destinationURL) {
+            Label("OPEN IN SPOTIFY", systemImage: "arrow.up.right")
+              .font(.system(size: 10, weight: .bold, design: .monospaced))
+              .foregroundStyle(WavepointTheme.ink)
+              .frame(minHeight: 32)
+          }
+          .accessibilityLabel("Open \(track.title) in Spotify")
         }
-        .accessibilityLabel("Open \(track.name) in Spotify")
       }
       .padding(16)
     }
@@ -89,6 +91,11 @@ struct TrackCardView: View {
         .offset(x: 7, y: 7)
     }
     .foregroundStyle(WavepointTheme.ink)
+  }
+
+  private var savedDateLabel: String {
+    guard let addedAt = track.addedAt else { return "SAVED DATE UNKNOWN" }
+    return "SAVED \(addedAt.formatted(.dateTime.year()))"
   }
 
   @ViewBuilder

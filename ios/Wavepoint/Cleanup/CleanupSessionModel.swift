@@ -22,7 +22,7 @@ enum CleanupOutcome: Equatable, Sendable {
 }
 
 struct CleanupDecision: Equatable, Sendable {
-  let track: SpotifyTrack
+  let track: LibraryTrack
   let outcome: CleanupOutcome
 }
 
@@ -30,26 +30,26 @@ struct CleanupDecision: Equatable, Sendable {
 @Observable
 final class CleanupSessionModel {
   private(set) var state: CleanupSessionState = .idle
-  private(set) var deck: [SpotifyTrack] = []
+  private(set) var deck: [LibraryTrack] = []
   private(set) var decisions: [CleanupDecision] = []
 
-  private let service: any SpotifyLibraryServing
+  private let service: any CleanupLibraryServing
   private let deckBuilder: CleanupDeckBuilder
 
   init(
-    service: any SpotifyLibraryServing,
+    service: any CleanupLibraryServing,
     deckBuilder: CleanupDeckBuilder = CleanupDeckBuilder()
   ) {
     self.service = service
     self.deckBuilder = deckBuilder
   }
 
-  var currentTrack: SpotifyTrack? {
+  var currentTrack: LibraryTrack? {
     guard decisions.count < deck.count else { return nil }
     return deck[decisions.count]
   }
 
-  var stagedRemovals: [SpotifyTrack] {
+  var stagedRemovals: [LibraryTrack] {
     decisions.compactMap { decision in
       decision.outcome == .remove ? decision.track : nil
     }
@@ -62,7 +62,7 @@ final class CleanupSessionModel {
     state = .loading
 
     do {
-      async let savedTracks = service.fetchSavedTracks()
+      async let savedTracks = service.fetchLibraryTracks()
       async let recentIDs = service.fetchRecentlyPlayedTrackIDs()
       deck = try await deckBuilder.build(
         from: savedTracks,
@@ -106,13 +106,11 @@ final class CleanupSessionModel {
     state = .committing
 
     do {
-      let removedCount = try await service.removeFromLibrary(
-        uris: stagedRemovals.map(\.uri)
-      )
+      let result = try await service.commit(trackIDs: stagedRemovals.map(\.commitID))
       state = .complete(
         CleanupSummary(
           decisionCount: decisions.count,
-          removedCount: removedCount
+          removedCount: result.committedCount
         )
       )
     } catch {

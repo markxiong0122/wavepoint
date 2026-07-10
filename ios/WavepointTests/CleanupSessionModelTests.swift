@@ -8,7 +8,7 @@ final class CleanupSessionModelTests: XCTestCase {
   func testLoadBuildsRankedDeckAndStartsDeciding() async {
     let old = track(id: "old", addedAt: Date(timeIntervalSince1970: 100))
     let recent = track(id: "recent", addedAt: Date(timeIntervalSince1970: 0))
-    let service = FakeSpotifyLibraryService(tracks: [recent, old], recentIDs: ["recent"])
+    let service = FakeCleanupLibraryService(tracks: [recent, old], recentIDs: ["recent"])
     let model = CleanupSessionModel(service: service)
 
     await model.load()
@@ -22,7 +22,7 @@ final class CleanupSessionModelTests: XCTestCase {
     let first = track(id: "first", addedAt: Date(timeIntervalSince1970: 0))
     let second = track(id: "second", addedAt: Date(timeIntervalSince1970: 1))
     let model = CleanupSessionModel(
-      service: FakeSpotifyLibraryService(tracks: [first, second])
+      service: FakeCleanupLibraryService(tracks: [first, second])
     )
     await model.load()
     let firstDisplayedTrack = model.currentTrack
@@ -48,7 +48,7 @@ final class CleanupSessionModelTests: XCTestCase {
       track(id: "remove", addedAt: Date(timeIntervalSince1970: 0)),
       track(id: "unseen", addedAt: Date(timeIntervalSince1970: 1)),
     ]
-    let model = CleanupSessionModel(service: FakeSpotifyLibraryService(tracks: tracks))
+    let model = CleanupSessionModel(service: FakeCleanupLibraryService(tracks: tracks))
     await model.load()
     let displayedTrack = model.currentTrack
 
@@ -60,7 +60,7 @@ final class CleanupSessionModelTests: XCTestCase {
   }
 
   func testConfirmCommitsStagedURIsAndCompletes() async {
-    let service = FakeSpotifyLibraryService(
+    let service = FakeCleanupLibraryService(
       tracks: [track(id: "remove", addedAt: Date(timeIntervalSince1970: 0))]
     )
     let model = CleanupSessionModel(service: service)
@@ -75,7 +75,7 @@ final class CleanupSessionModelTests: XCTestCase {
   }
 
   func testEmptyLibraryCompletesWithoutDecisions() async {
-    let model = CleanupSessionModel(service: FakeSpotifyLibraryService(tracks: []))
+    let model = CleanupSessionModel(service: FakeCleanupLibraryService(tracks: []))
 
     await model.load()
 
@@ -84,7 +84,7 @@ final class CleanupSessionModelTests: XCTestCase {
 
   func testLoadFailureShowsRetryableError() async {
     let model = CleanupSessionModel(
-      service: FakeSpotifyLibraryService(tracks: [], loadError: SpotifyWebAPIError.rateLimited)
+      service: FakeCleanupLibraryService(tracks: [], loadError: SpotifyWebAPIError.rateLimited)
     )
 
     await model.load()
@@ -95,29 +95,31 @@ final class CleanupSessionModelTests: XCTestCase {
     XCTAssertTrue(message.contains("too many requests"))
   }
 
-  private func track(id: String, addedAt: Date) -> SpotifyTrack {
-    SpotifyTrack(
+  private func track(id: String, addedAt: Date) -> LibraryTrack {
+    LibraryTrack(
       id: id,
-      uri: "spotify:track:\(id)",
-      name: "Song \(id)",
+      provider: .spotify,
+      playbackID: "spotify:track:\(id)",
+      commitID: "spotify:track:\(id)",
+      title: "Song \(id)",
       artistNames: ["Artist"],
       artworkURL: nil,
       previewURL: nil,
-      spotifyURL: URL(string: "https://open.spotify.com/track/\(id)")!,
+      destinationURL: URL(string: "https://open.spotify.com/track/\(id)")!,
       durationMilliseconds: 180_000,
       addedAt: addedAt
     )
   }
 }
 
-private actor FakeSpotifyLibraryService: SpotifyLibraryServing {
-  private let tracks: [SpotifyTrack]
+private actor FakeCleanupLibraryService: CleanupLibraryServing {
+  private let tracks: [LibraryTrack]
   private let recentIDs: Set<String>
   private let loadError: (any Error)?
   private(set) var removedURIs: [String] = []
 
   init(
-    tracks: [SpotifyTrack],
+    tracks: [LibraryTrack],
     recentIDs: Set<String> = [],
     loadError: (any Error)? = nil
   ) {
@@ -126,7 +128,7 @@ private actor FakeSpotifyLibraryService: SpotifyLibraryServing {
     self.loadError = loadError
   }
 
-  func fetchSavedTracks() async throws -> [SpotifyTrack] {
+  func fetchLibraryTracks() async throws -> [LibraryTrack] {
     if let loadError { throw loadError }
     return tracks
   }
@@ -135,8 +137,8 @@ private actor FakeSpotifyLibraryService: SpotifyLibraryServing {
     recentIDs
   }
 
-  func removeFromLibrary(uris: [String]) async throws -> Int {
-    removedURIs.append(contentsOf: uris)
-    return uris.count
+  func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
+    removedURIs.append(contentsOf: trackIDs)
+    return CleanupCommitResult(committedCount: trackIDs.count)
   }
 }

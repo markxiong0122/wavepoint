@@ -194,15 +194,17 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
     XCTAssertEqual(player.state, .ready)
   }
 
-  private func spotifyTrack(id: String, previewURL: URL? = nil) -> SpotifyTrack {
-    SpotifyTrack(
+  private func spotifyTrack(id: String, previewURL: URL? = nil) -> LibraryTrack {
+    LibraryTrack(
       id: id,
-      uri: "spotify:track:\(id)",
-      name: "Track \(id)",
+      provider: .spotify,
+      playbackID: "spotify:track:\(id)",
+      commitID: "spotify:track:\(id)",
+      title: "Track \(id)",
       artistNames: ["Artist"],
       artworkURL: nil,
       previewURL: previewURL,
-      spotifyURL: URL(string: "https://open.spotify.com/track/\(id)")!,
+      destinationURL: URL(string: "https://open.spotify.com/track/\(id)")!,
       durationMilliseconds: 180_000,
       addedAt: Date(timeIntervalSince1970: 0)
     )

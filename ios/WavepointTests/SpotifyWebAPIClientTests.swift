@@ -59,6 +59,15 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     let requests = await transport.requests
 
     XCTAssertEqual(tracks.map(\.id), ["one", "two"])
+    XCTAssertEqual(tracks.first?.provider, .spotify)
+    XCTAssertEqual(tracks.first?.playbackID, "spotify:track:one")
+    XCTAssertEqual(tracks.first?.commitID, "spotify:track:one")
+    XCTAssertEqual(tracks.first?.title, "Song one")
+    XCTAssertEqual(tracks.first?.artistLine, "Artist")
+    XCTAssertEqual(
+      tracks.first?.destinationURL,
+      URL(string: "https://open.spotify.com/track/one")
+    )
     XCTAssertEqual(requests.count, 2)
     XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer spotify-access")
     XCTAssertEqual(
