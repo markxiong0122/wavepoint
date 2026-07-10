@@ -69,6 +69,7 @@ final class TrackPreviewPlayer {
   private var previewURL: URL?
   private var spotifyURI: String?
   private var stopTask: Task<Void, Never>?
+  private var playbackGeneration = 0
 
   init(
     engine: any TrackPreviewPlaybackEngine = AVPlayerPreviewEngine(),
@@ -83,6 +84,7 @@ final class TrackPreviewPlayer {
   }
 
   func prepare(previewURL: URL?, spotifyURI: String?) {
+    playbackGeneration += 1
     stopTask?.cancel()
     if self.previewURL != nil {
       engine.stop()
@@ -134,6 +136,7 @@ final class TrackPreviewPlayer {
   }
 
   func stop() async {
+    playbackGeneration += 1
     stopTask?.cancel()
     guard source != .unavailable else { return }
     switch source {
@@ -148,6 +151,7 @@ final class TrackPreviewPlayer {
   }
 
   private func startPlayback() async {
+    let generation = playbackGeneration
     do {
       switch source {
       case .directPreview:
@@ -160,9 +164,11 @@ final class TrackPreviewPlayer {
       case .unavailable:
         return
       }
+      guard generation == playbackGeneration else { return }
       state = .playing
       scheduleSegmentEnd()
     } catch {
+      guard generation == playbackGeneration else { return }
       state = .ready
       errorMessage = (error as? LocalizedError)?.errorDescription
         ?? "Spotify couldn't play this track. Open it in Spotify instead."

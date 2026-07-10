@@ -105,6 +105,27 @@ final class TrackPreviewPlayerTests: XCTestCase {
     XCTAssertEqual(player.state, .ready)
     XCTAssertEqual(player.errorMessage, "Spotify didn't finish connecting. Please try again.")
   }
+
+  func testPreparingNewTrackInvalidatesPendingRemoteStart() async {
+    let remote = ControlledRemotePlayer()
+    let player = TrackPreviewPlayer(
+      engine: RecordingPreviewEngine(),
+      remote: remote,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    player.prepare(previewURL: nil, spotifyURI: "spotify:track:a")
+
+    let oldStart = Task { @MainActor in
+      await player.togglePlayback()
+    }
+    await remote.waitUntilPlayStarts()
+    player.prepare(previewURL: nil, spotifyURI: "spotify:track:b")
+    remote.finishPlay()
+    await oldStart.value
+
+    XCTAssertEqual(player.state, .ready)
+    XCTAssertEqual(player.source, .spotifyRemote)
+  }
 }
 
 @MainActor
@@ -157,4 +178,33 @@ private final class RecordingRemotePlayer: SpotifyRemotePlaying {
 
 private enum RemoteTestError: Error {
   case failed
+}
+
+@MainActor
+private final class ControlledRemotePlayer: SpotifyRemotePlaying {
+  private var playContinuation: CheckedContinuation<Void, Error>?
+  private var startContinuation: CheckedContinuation<Void, Never>?
+  private var didStart = false
+
+  func play(uri: String) async throws {
+    try await withCheckedThrowingContinuation { continuation in
+      playContinuation = continuation
+      didStart = true
+      startContinuation?.resume()
+      startContinuation = nil
+    }
+  }
+
+  func pause() async throws {}
+  func resume() async throws {}
+
+  func waitUntilPlayStarts() async {
+    guard !didStart else { return }
+    await withCheckedContinuation { startContinuation = $0 }
+  }
+
+  func finishPlay() {
+    playContinuation?.resume()
+    playContinuation = nil
+  }
 }
