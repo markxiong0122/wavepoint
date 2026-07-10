@@ -9,6 +9,7 @@ enum MusicProviderSessionState: Equatable, Sendable {
   case appleMusicReady
   case appleMusicPermissionDenied
   case appleMusicRestricted
+  case appleMusicPrivacyAcknowledgementRequired
   case appleMusicSubscriptionRequired
   case appleMusicSyncLibraryRequired
   case failed(String)
@@ -113,6 +114,8 @@ final class MusicProviderSessionModel {
         state = .appleMusicPermissionDenied
       case .restricted:
         state = .appleMusicRestricted
+      case .privacyAcknowledgementRequired:
+        state = .appleMusicPrivacyAcknowledgementRequired
       case .subscriptionRequired:
         state = .appleMusicSubscriptionRequired
       case .syncLibraryRequired:

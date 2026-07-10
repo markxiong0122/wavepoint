@@ -33,6 +33,7 @@ final class MusicProviderSessionModelTests: XCTestCase {
       (AppleMusicEligibility.eligible, MusicProviderSessionState.appleMusicReady),
       (.permissionDenied, .appleMusicPermissionDenied),
       (.restricted, .appleMusicRestricted),
+      (.privacyAcknowledgementRequired, .appleMusicPrivacyAcknowledgementRequired),
       (.subscriptionRequired, .appleMusicSubscriptionRequired),
       (.syncLibraryRequired, .appleMusicSyncLibraryRequired),
     ] {

@@ -17,8 +17,13 @@ enum AppleMusicEligibility: Equatable, Sendable {
   case permissionNotDetermined
   case permissionDenied
   case restricted
+  case privacyAcknowledgementRequired
   case subscriptionRequired
   case syncLibraryRequired
+}
+
+enum AppleMusicAuthorizationClientError: Error, Equatable, Sendable {
+  case privacyAcknowledgementRequired
 }
 
 protocol AppleMusicAuthorizing: Sendable {

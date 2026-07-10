@@ -26,7 +26,12 @@ struct MusicKitAuthorizationService: AppleMusicAuthorizing {
     case .restricted:
       return .restricted
     case .authorized:
-      let capabilities = try await client.fetchSubscriptionCapabilities()
+      let capabilities: AppleMusicSubscriptionCapabilities
+      do {
+        capabilities = try await client.fetchSubscriptionCapabilities()
+      } catch AppleMusicAuthorizationClientError.privacyAcknowledgementRequired {
+        return .privacyAcknowledgementRequired
+      }
       guard capabilities.canPlayCatalogContent else {
         return .subscriptionRequired
       }
@@ -48,11 +53,15 @@ struct SystemMusicKitAuthorizationClient: MusicKitAuthorizationClient {
   }
 
   func fetchSubscriptionCapabilities() async throws -> AppleMusicSubscriptionCapabilities {
-    let subscription = try await MusicSubscription.current
-    return AppleMusicSubscriptionCapabilities(
-      canPlayCatalogContent: subscription.canPlayCatalogContent,
-      hasCloudLibraryEnabled: subscription.hasCloudLibraryEnabled
-    )
+    do {
+      let subscription = try await MusicSubscription.current
+      return AppleMusicSubscriptionCapabilities(
+        canPlayCatalogContent: subscription.canPlayCatalogContent,
+        hasCloudLibraryEnabled: subscription.hasCloudLibraryEnabled
+      )
+    } catch MusicSubscription.Error.privacyAcknowledgementRequired {
+      throw AppleMusicAuthorizationClientError.privacyAcknowledgementRequired
+    }
   }
 
   private static func status(

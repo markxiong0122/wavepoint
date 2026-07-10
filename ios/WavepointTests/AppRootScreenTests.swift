@@ -60,6 +60,13 @@ final class AppRootScreenTests: XCTestCase {
       .appleMusicRestricted
     )
     XCTAssertEqual(
+      AppRootScreen(
+        providerState: .appleMusicPrivacyAcknowledgementRequired,
+        spotifyState: .signedOut
+      ),
+      .appleMusicPrivacyAcknowledgementRequired
+    )
+    XCTAssertEqual(
       AppRootScreen(providerState: .appleMusicSubscriptionRequired, spotifyState: .signedOut),
       .appleMusicSubscriptionRequired
     )

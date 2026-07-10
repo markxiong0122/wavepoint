@@ -12,6 +12,7 @@ enum AppRootScreen: Equatable {
   case spotifyEligibilityUnavailable
   case appleMusicPermissionDenied
   case appleMusicRestricted
+  case appleMusicPrivacyAcknowledgementRequired
   case appleMusicSubscriptionRequired
   case appleMusicSyncLibraryRequired
   case error(String)
@@ -52,6 +53,8 @@ enum AppRootScreen: Equatable {
       self = .appleMusicPermissionDenied
     case .appleMusicRestricted:
       self = .appleMusicRestricted
+    case .appleMusicPrivacyAcknowledgementRequired:
+      self = .appleMusicPrivacyAcknowledgementRequired
     case .appleMusicSubscriptionRequired:
       self = .appleMusicSubscriptionRequired
     case .appleMusicSyncLibraryRequired:
@@ -72,6 +75,8 @@ enum AppRootScreen: Equatable {
     case .spotifyEligibilityUnavailable: "spotify-eligibility-unavailable"
     case .appleMusicPermissionDenied: "apple-music-permission-denied"
     case .appleMusicRestricted: "apple-music-restricted"
+    case .appleMusicPrivacyAcknowledgementRequired:
+      "apple-music-privacy-acknowledgement-required"
     case .appleMusicSubscriptionRequired: "apple-music-subscription-required"
     case .appleMusicSyncLibraryRequired: "apple-music-sync-library-required"
     case .error: "auth-error"
@@ -167,6 +172,14 @@ struct AppRootView: View {
           identifier: "apple-music-restricted",
           primaryAction: retryAppleMusic
         )
+      case .appleMusicPrivacyAcknowledgementRequired:
+        connectionBlocker(
+          eyebrow: "FINISH SETTING UP APPLE MUSIC",
+          message: "Open Music and accept Apple's privacy acknowledgement, then return to Wavepoint.",
+          primaryTitle: "OPEN MUSIC",
+          identifier: "apple-music-privacy-acknowledgement-required",
+          primaryAction: openMusic
+        )
       case .appleMusicSubscriptionRequired:
         connectionBlocker(
           eyebrow: "APPLE MUSIC REQUIRED",
@@ -203,7 +216,9 @@ struct AppRootView: View {
     }
     .onChange(of: scenePhase) { oldPhase, newPhase in
       guard oldPhase != .active, newPhase == .active else { return }
-      guard providerModel.state == .appleMusicPermissionDenied else { return }
+      guard providerModel.state == .appleMusicPermissionDenied
+        || providerModel.state == .appleMusicPrivacyAcknowledgementRequired
+      else { return }
       retryAppleMusic()
     }
     .onOpenURL { url in
@@ -366,6 +381,11 @@ struct AppRootView: View {
 
   private func openSettings() {
     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+    openURL(url)
+  }
+
+  private func openMusic() {
+    guard let url = URL(string: "https://music.apple.com") else { return }
     openURL(url)
   }
 

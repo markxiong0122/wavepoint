@@ -69,12 +69,28 @@ final class AppleMusicAuthorizationTests: XCTestCase {
     XCTAssertEqual(current, .permissionNotDetermined)
     XCTAssertEqual(requested, .eligible)
   }
+
+  func testPrivacyAcknowledgementErrorMapsToARecoverableEligibility() async throws {
+    let service = MusicKitAuthorizationService(
+      client: FakeMusicKitAuthorizationClient(
+        currentStatus: .authorized,
+        requestedStatus: .authorized,
+        capabilitiesError: AppleMusicAuthorizationClientError
+          .privacyAcknowledgementRequired
+      )
+    )
+
+    let result = try await service.currentEligibility()
+
+    XCTAssertEqual(result, .privacyAcknowledgementRequired)
+  }
 }
 
 private struct FakeMusicKitAuthorizationClient: MusicKitAuthorizationClient {
   let currentStatus: AppleMusicAuthorizationStatus
   let requestedStatus: AppleMusicAuthorizationStatus
   let capabilities: AppleMusicSubscriptionCapabilities
+  let capabilitiesError: AppleMusicAuthorizationClientError?
 
   init(
     currentStatus: AppleMusicAuthorizationStatus,
@@ -82,11 +98,13 @@ private struct FakeMusicKitAuthorizationClient: MusicKitAuthorizationClient {
     capabilities: AppleMusicSubscriptionCapabilities = .init(
       canPlayCatalogContent: true,
       hasCloudLibraryEnabled: true
-    )
+    ),
+    capabilitiesError: AppleMusicAuthorizationClientError? = nil
   ) {
     self.currentStatus = currentStatus
     self.requestedStatus = requestedStatus
     self.capabilities = capabilities
+    self.capabilitiesError = capabilitiesError
   }
 
   func requestAuthorization() async -> AppleMusicAuthorizationStatus {
@@ -94,6 +112,7 @@ private struct FakeMusicKitAuthorizationClient: MusicKitAuthorizationClient {
   }
 
   func fetchSubscriptionCapabilities() async throws -> AppleMusicSubscriptionCapabilities {
-    capabilities
+    if let capabilitiesError { throw capabilitiesError }
+    return capabilities
   }
 }
