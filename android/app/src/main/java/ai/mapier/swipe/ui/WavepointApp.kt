@@ -18,6 +18,10 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -36,6 +40,7 @@ sealed interface WavepointUiState {
   data object Login : WavepointUiState
   data object Authorizing : WavepointUiState
   data object LoadingLibrary : WavepointUiState
+  data object DeletingAccount : WavepointUiState
   data class Blocked(val kind: PremiumBlockerKind) : WavepointUiState
   data class Deck(
     val track: LibraryTrack,
@@ -68,6 +73,9 @@ data class WavepointActions(
   val onOpenTrack: (String) -> Unit = {},
   val onStartAgain: () -> Unit = {},
   val onOpenSpotify: () -> Unit = {},
+  val onSignOut: () -> Unit = {},
+  val onDeleteAccount: () -> Unit = {},
+  val onAccount: () -> Unit = {},
 )
 
 @Composable
@@ -75,6 +83,7 @@ fun WavepointApp(
   state: WavepointUiState,
   actions: WavepointActions,
 ) {
+  var showsAccount by remember { mutableStateOf(false) }
   Box(
     modifier = Modifier
       .fillMaxSize()
@@ -85,13 +94,20 @@ fun WavepointApp(
       WavepointUiState.Restoring -> StatusScreen("TUNING THE DECK…")
       WavepointUiState.Authorizing -> StatusScreen("OPENING SPOTIFY…")
       WavepointUiState.LoadingLibrary -> StatusScreen("DIGGING UP BURIED SONGS…")
+      WavepointUiState.DeletingAccount -> StatusScreen(
+        "DELETING WAVEPOINT ACCOUNT…",
+        accent = WavepointPalette.Remove,
+      )
       WavepointUiState.Login -> LoginScreen(onSignIn = actions.onSignIn)
       is WavepointUiState.Blocked -> PremiumBlockerScreen(
         kind = state.kind,
         onRetry = actions.onRetry,
         onReconnect = actions.onReconnect,
       )
-      is WavepointUiState.Deck -> CleanupDeckScreen(state, actions)
+      is WavepointUiState.Deck -> CleanupDeckScreen(
+        state,
+        actions.copy(onAccount = { showsAccount = true }),
+      )
       is WavepointUiState.Review -> RemovalReviewScreen(
         tracks = state.tracks,
         onBack = actions.onCancelReview,
@@ -104,9 +120,23 @@ fun WavepointApp(
       is WavepointUiState.Complete -> CleanupCompleteScreen(
         summary = state.summary,
         onStartAgain = actions.onStartAgain,
+        onAccount = { showsAccount = true },
       )
       is WavepointUiState.Error -> ErrorScreen(state, actions)
     }
+  }
+  if (showsAccount) {
+    AccountSheet(
+      onDismiss = { showsAccount = false },
+      onSignOut = {
+        showsAccount = false
+        actions.onSignOut()
+      },
+      onDeleteAccount = {
+        showsAccount = false
+        actions.onDeleteAccount()
+      },
+    )
   }
 }
 

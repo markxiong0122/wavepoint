@@ -1,5 +1,6 @@
 package ai.mapier.swipe.ui
 
+import ai.mapier.swipe.account.AccountDeleting
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifyPlaybackState
 import ai.mapier.swipe.auth.AppSession
@@ -21,6 +22,7 @@ class WavepointController(
   private val cleanupSession: CleanupSession,
   private val deckBuilder: CleanupDeckBuilder,
   private val player: SpotifyAppRemotePlayer,
+  private val accountDeleting: AccountDeleting,
   private val scope: CoroutineScope,
   private val deckSeed: () -> Long = { kotlin.random.Random.nextLong() },
 ) {
@@ -30,7 +32,12 @@ class WavepointController(
   init {
     scope.launch {
       player.status.collect {
-        if (cleanupSession.state == CleanupSessionState.DECIDING) publishDeck()
+        if (
+          cleanupSession.state == CleanupSessionState.DECIDING &&
+          mutableState.value is WavepointUiState.Deck
+        ) {
+          publishDeck()
+        }
       }
     }
   }
@@ -78,6 +85,32 @@ class WavepointController(
         appSession.startSignIn()
       }
       routeSession()
+    }
+  }
+
+  fun signOut() {
+    scope.launch {
+      mutableState.value = WavepointUiState.Restoring
+      player.onLifecycleStop()
+      appSession.signOut()
+      routeSession()
+    }
+  }
+
+  fun deleteAccount() {
+    scope.launch {
+      mutableState.value = WavepointUiState.DeletingAccount
+      player.onLifecycleStop()
+      try {
+        accountDeleting.deleteAccount()
+        appSession.clearAfterAccountDeletion()
+        routeSession()
+      } catch (error: Throwable) {
+        mutableState.value = WavepointUiState.Error(
+          message = error.message ?: "Your Wavepoint account was not deleted.",
+          canReturnToReview = false,
+        )
+      }
     }
   }
 

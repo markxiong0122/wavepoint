@@ -1,5 +1,8 @@
 package ai.mapier.swipe
 
+import ai.mapier.swipe.account.AccountDeletionErrorKind
+import ai.mapier.swipe.account.AccountDeletionException
+import ai.mapier.swipe.account.SupabaseAccountDeletionService
 import ai.mapier.swipe.audio.CoroutinePreviewScheduler
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifySdkRemoteGateway
@@ -16,6 +19,7 @@ import ai.mapier.swipe.spotify.SpotifyWebApiClient
 import ai.mapier.swipe.ui.WavepointController
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import io.github.jan.supabase.auth.auth
 
 data class WavepointRuntime(
   val controller: WavepointController,
@@ -60,6 +64,14 @@ data class WavepointRuntime(
         cleanupSession = CleanupSession(),
         deckBuilder = CleanupDeckBuilder(),
         player = player,
+        accountDeleting = SupabaseAccountDeletionService(
+          functionUrl = "${BuildConfig.SUPABASE_URL}/functions/v1/delete-account",
+          publishableKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY,
+          accessToken = {
+            supabase.auth.currentSessionOrNull()?.accessToken
+              ?: throw AccountDeletionException(AccountDeletionErrorKind.AUTHORIZATION_EXPIRED)
+          },
+        ),
         scope = scope,
       )
       return WavepointRuntime(controller, authenticator)

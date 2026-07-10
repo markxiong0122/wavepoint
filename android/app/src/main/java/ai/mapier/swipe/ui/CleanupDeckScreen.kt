@@ -40,7 +40,7 @@ fun CleanupDeckScreen(
       .testTag("cleanup-deck"),
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    Header()
+    Header(onAccount = actions.onAccount)
     Row(
       Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.SpaceBetween,
@@ -121,8 +121,11 @@ fun CleanupDeckScreen(
 }
 
 @Composable
-private fun Header() {
-  Row(verticalAlignment = Alignment.CenterVertically) {
+private fun Header(onAccount: () -> Unit) {
+  Row(
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
     CutRecordMark(Modifier.size(38.dp))
     Spacer(Modifier.width(10.dp))
     Column {
@@ -141,6 +144,18 @@ private fun Header() {
         letterSpacing = 0.8.sp,
       )
     }
+    Spacer(Modifier.weight(1f))
+    Text(
+      "ACCOUNT",
+      modifier = Modifier
+        .height(44.dp)
+        .clickable(onClick = onAccount)
+        .padding(top = 15.dp),
+      color = WavepointPalette.Paper.copy(alpha = 0.7f),
+      fontFamily = FontFamily.Monospace,
+      fontWeight = FontWeight.Bold,
+      fontSize = 9.sp,
+    )
   }
 }
 

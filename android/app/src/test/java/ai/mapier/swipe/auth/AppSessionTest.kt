@@ -115,6 +115,21 @@ class AppSessionTest {
 
     assertEquals(AppSessionState.SPOTIFY_RECONNECT_REQUIRED, session.state)
   }
+
+  @Test
+  fun confirmedAccountDeletionAlwaysClearsLocalProviderCredentials() = runTest {
+    val tokenStore = InMemorySpotifyTokenStore(
+      SpotifyProviderTokens("stored-access", "stored-refresh"),
+    )
+    val authenticator = FakeSpotifyAuthenticator()
+    val session = AppSession(authenticator, tokenStore)
+
+    session.clearAfterAccountDeletion()
+
+    assertEquals(AppSessionState.SIGNED_OUT, session.state)
+    assertNull(tokenStore.tokens)
+    assertEquals(1, authenticator.clearLocalSessionCount)
+  }
 }
 
 private class FakeSpotifyAuthenticator(

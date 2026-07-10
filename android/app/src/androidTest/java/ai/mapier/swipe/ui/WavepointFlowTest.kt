@@ -113,6 +113,32 @@ class WavepointFlowTest {
     render(WavepointUiState.Complete(CleanupSummary(decisionCount = 12, affectedCount = 5)))
     composeRule.onNodeWithTag("cleanup-complete").assertIsDisplayed()
     composeRule.onNodeWithText("12 DECIDED · 5 REMOVED").assertIsDisplayed()
+    composeRule.onNodeWithText("ACCOUNT").assertIsDisplayed()
+  }
+
+  @Test
+  fun accountSheetExplainsPrivacyAndConfirmsDeletion() {
+    var deleteCount = 0
+    render(
+      state = WavepointUiState.Deck(
+        track = track("account"),
+        completedCount = 0,
+        totalCount = 1,
+        reviewCount = 0,
+        playbackState = SpotifyPlaybackState.READY,
+      ),
+      actions = WavepointActions(onDeleteAccount = { deleteCount += 1 }),
+    )
+
+    composeRule.onNodeWithText("ACCOUNT").performClick()
+    composeRule.onNodeWithText("YOUR ACCOUNT").assertIsDisplayed()
+    composeRule.onNodeWithText("It does not delete your Spotify account or any songs.", substring = true)
+      .assertIsDisplayed()
+    composeRule.onNodeWithTag("delete-account-button").performClick()
+    composeRule.onNodeWithText("Delete your Wavepoint account?").assertIsDisplayed()
+    composeRule.onNodeWithTag("confirm-account-deletion-button").performClick()
+
+    assertEquals(1, deleteCount)
   }
 
   private fun render(

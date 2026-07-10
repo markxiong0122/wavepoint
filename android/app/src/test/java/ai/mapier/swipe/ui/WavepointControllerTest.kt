@@ -4,6 +4,7 @@ import ai.mapier.swipe.audio.PreviewCancellation
 import ai.mapier.swipe.audio.PreviewScheduler
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifyRemoteGateway
+import ai.mapier.swipe.account.AccountDeleting
 import ai.mapier.swipe.auth.AppSession
 import ai.mapier.swipe.auth.SpotifyAuthSession
 import ai.mapier.swipe.auth.SpotifyAuthenticator
@@ -119,10 +120,47 @@ class WavepointControllerTest {
     assertTrue(controller.state.value is WavepointUiState.Review)
   }
 
+  @Test
+  fun confirmedAccountDeletionReturnsToSignedOut() = runTest {
+    val deletion = FakeAccountDeleting()
+    val controller = controller(
+      eligibility = SpotifyAccountEligibility.PREMIUM,
+      library = FakeLibraryService(listOf(track("one"))),
+      accountDeleting = deletion,
+    )
+    controller.restore()
+    runCurrent()
+
+    controller.deleteAccount()
+    runCurrent()
+
+    assertEquals(1, deletion.calls)
+    assertEquals(WavepointUiState.Login, controller.state.value)
+  }
+
+  @Test
+  fun failedAccountDeletionKeepsAVisibleNotDeletedError() = runTest {
+    val deletion = FakeAccountDeleting(IllegalStateException("Account was not deleted."))
+    val controller = controller(
+      eligibility = SpotifyAccountEligibility.PREMIUM,
+      library = FakeLibraryService(listOf(track("one"))),
+      accountDeleting = deletion,
+    )
+    controller.restore()
+    runCurrent()
+
+    controller.deleteAccount()
+    runCurrent()
+
+    val error = controller.state.value as WavepointUiState.Error
+    assertEquals("Account was not deleted.", error.message)
+  }
+
   private fun kotlinx.coroutines.test.TestScope.controller(
     eligibility: SpotifyAccountEligibility,
     library: FakeLibraryService,
     gateway: FakeRemoteGateway = FakeRemoteGateway(),
+    accountDeleting: AccountDeleting = FakeAccountDeleting(),
   ): WavepointController {
     val tokens = MemoryTokenStore(SpotifyProviderTokens("access", "refresh"))
     val appSession = AppSession(
@@ -137,9 +175,21 @@ class WavepointControllerTest {
       cleanupSession = CleanupSession(),
       deckBuilder = CleanupDeckBuilder(referenceDate = Instant.parse("2026-01-01T00:00:00Z")),
       player = player,
+      accountDeleting = accountDeleting,
       scope = backgroundScope,
       deckSeed = { 42L },
     )
+  }
+}
+
+private class FakeAccountDeleting(
+  private val error: Throwable? = null,
+) : AccountDeleting {
+  var calls = 0
+
+  override suspend fun deleteAccount() {
+    calls += 1
+    error?.let { throw it }
   }
 }
 

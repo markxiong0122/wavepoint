@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 fun CleanupCompleteScreen(
   summary: CleanupSummary,
   onStartAgain: () -> Unit,
+  onAccount: () -> Unit,
 ) {
   Column(
     modifier = Modifier
@@ -55,6 +56,7 @@ fun CleanupCompleteScreen(
       onClick = onStartAgain,
       modifier = Modifier.fillMaxWidth(),
     )
+    WavepointTextButton("ACCOUNT", onAccount)
     Spacer(Modifier.weight(1f))
   }
 }

@@ -87,6 +87,13 @@ class AppSession(
       .onFailure(::fail)
   }
 
+  suspend fun clearAfterAccountDeletion() {
+    runCatching { authenticator.clearLocalSession() }
+    tokenStore.clear()
+    errorMessage = null
+    state = AppSessionState.SIGNED_OUT
+  }
+
   suspend fun retryEligibility() {
     if (tokenStore.load() == null) {
       state = AppSessionState.SIGNED_OUT

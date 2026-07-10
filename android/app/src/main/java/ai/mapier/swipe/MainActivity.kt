@@ -84,6 +84,8 @@ class MainActivity : ComponentActivity() {
     onOpenTrack = ::openUri,
     onStartAgain = runtime.controller::startAgain,
     onOpenSpotify = ::openSpotifyAppListing,
+    onSignOut = runtime.controller::signOut,
+    onDeleteAccount = runtime.controller::deleteAccount,
   )
 
   private fun handleSpotifyCallback(intent: Intent): Boolean {
