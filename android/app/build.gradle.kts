@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.compose.compiler)
+  alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -36,6 +37,10 @@ kotlin {
   }
 }
 
+dependencyLocking {
+  lockAllConfigurations()
+}
+
 dependencies {
   val composeBom = platform(libs.compose.bom)
   implementation(composeBom)
@@ -47,5 +52,12 @@ dependencies {
   implementation(libs.compose.ui.tooling.preview)
   debugImplementation(libs.compose.ui.tooling)
 
+  implementation(platform(libs.supabase.bom))
+  implementation(libs.supabase.auth)
+  implementation(libs.supabase.functions)
+  implementation(libs.ktor.client.okhttp)
+  implementation(libs.kotlinx.serialization.json)
+
   testImplementation(libs.junit)
+  testImplementation(libs.kotlinx.coroutines.test)
 }
