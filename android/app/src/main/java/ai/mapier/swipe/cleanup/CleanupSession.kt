@@ -98,6 +98,11 @@ class CleanupSession {
     state = CleanupSessionState.COMPLETE
   }
 
+  fun failCommit() {
+    check(state == CleanupSessionState.COMMITTING)
+    state = CleanupSessionState.REVIEWING
+  }
+
   private fun decide(outcome: CleanupOutcome) {
     if (state != CleanupSessionState.DECIDING) return
     val track = currentTrack ?: return

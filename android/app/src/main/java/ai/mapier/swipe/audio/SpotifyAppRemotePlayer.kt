@@ -16,6 +16,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 enum class SpotifyRemoteFailure {
   APP_NOT_INSTALLED,
@@ -48,6 +51,11 @@ enum class SpotifyPlaybackState {
   AUTHORIZATION_REQUIRED,
   FAILED,
 }
+
+data class SpotifyPlaybackStatus(
+  val state: SpotifyPlaybackState,
+  val errorMessage: String? = null,
+)
 
 interface SpotifyRemoteGateway {
   val isConnected: Boolean
@@ -89,11 +97,22 @@ class SpotifyAppRemotePlayer(
   private val gateway: SpotifyRemoteGateway,
   private val scheduler: PreviewScheduler,
 ) {
-  var state: SpotifyPlaybackState = SpotifyPlaybackState.IDLE
-    private set
+  private val mutableStatus = MutableStateFlow(
+    SpotifyPlaybackStatus(SpotifyPlaybackState.IDLE),
+  )
+  val status: StateFlow<SpotifyPlaybackStatus> = mutableStatus.asStateFlow()
 
-  var errorMessage: String? = null
-    private set
+  var state: SpotifyPlaybackState
+    get() = mutableStatus.value.state
+    private set(value) {
+      mutableStatus.value = mutableStatus.value.copy(state = value)
+    }
+
+  var errorMessage: String?
+    get() = mutableStatus.value.errorMessage
+    private set(value) {
+      mutableStatus.value = mutableStatus.value.copy(errorMessage = value)
+    }
 
   private var timer: PreviewCancellation? = null
   private var requestGeneration = 0L

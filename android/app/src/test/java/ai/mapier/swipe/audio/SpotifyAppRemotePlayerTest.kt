@@ -18,12 +18,14 @@ class SpotifyAppRemotePlayerTest {
     assertEquals(listOf("spotify:track:one"), gateway.playCalls)
     assertEquals(listOf(0L), gateway.seekCalls)
     assertEquals(SpotifyPlaybackState.PLAYING, player.state)
+    assertEquals(SpotifyPlaybackState.PLAYING, player.status.value.state)
     assertEquals(15_000L, scheduler.tasks.single().delayMilliseconds)
 
     scheduler.tasks.single().runEvenIfCancelled()
 
     assertEquals(1, gateway.pauseCalls)
     assertEquals(SpotifyPlaybackState.READY, player.state)
+    assertEquals(SpotifyPlaybackState.READY, player.status.value.state)
   }
 
   @Test

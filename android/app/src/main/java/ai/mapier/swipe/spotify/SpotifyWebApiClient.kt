@@ -37,6 +37,12 @@ interface SpotifyHttpTransport {
   suspend fun send(request: SpotifyHttpRequest): SpotifyHttpResponse
 }
 
+interface SpotifyLibraryService {
+  suspend fun fetchSavedTracks(): List<LibraryTrack>
+  suspend fun fetchRecentlyPlayedTrackIds(): Set<String>
+  suspend fun removeFromLibrary(uris: List<String>): Int
+}
+
 class OkHttpSpotifyTransport(
   private val client: OkHttpClient = OkHttpClient(),
 ) : SpotifyHttpTransport {
@@ -64,7 +70,7 @@ class SpotifyWebApiClient(
   private val sleepMilliseconds: suspend (Long) -> Unit = { delay(it) },
   private val json: Json = Json { ignoreUnknownKeys = true },
   private val accessToken: suspend (forceRefresh: Boolean) -> String,
-) : SpotifyAccountEligibilityChecker {
+) : SpotifyAccountEligibilityChecker, SpotifyLibraryService {
   override suspend fun fetchAccountEligibility(): SpotifyAccountEligibility {
     return try {
       when (decode<CurrentUserProfile>(authorized("$BASE_URL/me")).product?.lowercase()) {
@@ -80,7 +86,7 @@ class SpotifyWebApiClient(
     }
   }
 
-  suspend fun fetchSavedTracks(): List<LibraryTrack> {
+  override suspend fun fetchSavedTracks(): List<LibraryTrack> {
     var nextUrl: String? = "$BASE_URL/me/tracks?limit=50"
     val tracks = mutableListOf<LibraryTrack>()
     while (nextUrl != null) {
@@ -91,14 +97,14 @@ class SpotifyWebApiClient(
     return tracks
   }
 
-  suspend fun fetchRecentlyPlayedTrackIds(): Set<String> {
+  override suspend fun fetchRecentlyPlayedTrackIds(): Set<String> {
     val page = decode<RecentlyPlayedPage>(
       authorized("$BASE_URL/me/player/recently-played?limit=50"),
     )
     return page.items.mapNotNull { it.track.id }.toSet()
   }
 
-  suspend fun removeFromLibrary(uris: List<String>): Int {
+  override suspend fun removeFromLibrary(uris: List<String>): Int {
     if (uris.isEmpty()) return 0
     var committed = 0
     for (chunk in uris.chunked(40)) {

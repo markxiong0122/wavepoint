@@ -18,10 +18,23 @@ android {
     versionCode = 1
     versionName = "0.1.0"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    buildConfigField("String", "SUPABASE_URL", "\"https://pvlykxebusgsgrtrkrqh.supabase.co\"")
+    buildConfigField(
+      "String",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "\"sb_publishable_sPaFSnNn9t3A7Id_zc1vsA_YxQJN3Dz\"",
+    )
+    buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"6603fd9c06fe40bd823ecacd102c96ed\"")
+    buildConfigField(
+      "String",
+      "SPOTIFY_APP_REMOTE_REDIRECT_URI",
+      "\"ai.mapier.swipe://spotify-app-remote-callback\"",
+    )
   }
 
   buildFeatures {
     compose = true
+    buildConfig = true
   }
 
   compileOptions {

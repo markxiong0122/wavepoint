@@ -57,6 +57,19 @@ class CleanupSessionTest {
     assertEquals(CleanupSummary(decisionCount = 1, affectedCount = 0), session.summary)
   }
 
+  @Test
+  fun failedCommitReturnsToTheSameReviewBoundary() {
+    val session = CleanupSession()
+    session.load(listOf(track("one")))
+    session.tossCurrent()
+    session.beginCommit()
+
+    session.failCommit()
+
+    assertEquals(CleanupSessionState.REVIEWING, session.state)
+    assertEquals(listOf("one"), session.stagedRemovals.map { it.id })
+  }
+
   private fun track(id: String) = LibraryTrack(
     id = id,
     playbackId = "spotify:track:$id",
