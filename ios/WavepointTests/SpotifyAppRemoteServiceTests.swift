@@ -29,16 +29,23 @@ final class SpotifyAppRemoteServiceTests: XCTestCase {
     XCTAssertEqual(tokenProvider.callCount, 1)
   }
 
-  func testConnectionFailureWakesSpotifyOnlyForExplicitPlay() async throws {
+  func testConnectionFailureWakesSpotifyOnlyForExplicitPlay() async {
     let client = RecordingAppRemoteClient(
       isConnected: false,
-      connectError: RemoteClientTestError.connectionFailed
+      connectError: RemoteClientTestError.connectionFailed,
+      callbackResult: .error("Test completed.")
     )
     let service = SpotifyAppRemoteService(client: client) { "provider-token" }
+    let callback = URL(string: "ai.mapier.swipe://spotify-app-remote-callback#error=test")!
 
     XCTAssertEqual(client.events, [])
 
-    try await service.play(uri: "spotify:track:wake")
+    let playTask = Task { @MainActor in
+      try? await service.play(uri: "spotify:track:wake")
+    }
+    for _ in 0..<10 where !client.events.contains(.authorizeAndPlay("spotify:track:wake")) {
+      await Task.yield()
+    }
 
     XCTAssertEqual(
       client.events,
@@ -48,6 +55,135 @@ final class SpotifyAppRemoteServiceTests: XCTestCase {
         .authorizeAndPlay("spotify:track:wake"),
       ]
     )
+    _ = try? await service.handleOpenURL(callback)
+    await playTask.value
+  }
+
+  func testAuthorizationHandoffWaitsForSuccessfulCallbackBeforeCompleting() async throws {
+    let callback = URL(string: "ai.mapier.swipe://spotify-app-remote-callback#access_token=fresh")!
+    let client = RecordingAppRemoteClient(
+      isConnected: false,
+      connectError: RemoteClientTestError.connectionFailed,
+      callbackResult: .token("callback-token")
+    )
+    let service = SpotifyAppRemoteService(client: client) { "provider-token" }
+    var didComplete = false
+
+    let playTask = Task { @MainActor in
+      try await service.play(uri: "spotify:track:wake")
+      didComplete = true
+    }
+    for _ in 0..<10 where !client.events.contains(.authorizeAndPlay("spotify:track:wake")) {
+      await Task.yield()
+    }
+
+    XCTAssertFalse(didComplete)
+    let handled = try await service.handleOpenURL(callback)
+    XCTAssertTrue(handled)
+    try await playTask.value
+    XCTAssertTrue(didComplete)
+  }
+
+  func testAuthorizationErrorCompletesPendingPlayWithSameError() async {
+    let callback = URL(string: "ai.mapier.swipe://spotify-app-remote-callback#error=denied")!
+    let client = RecordingAppRemoteClient(
+      isConnected: false,
+      connectError: RemoteClientTestError.connectionFailed,
+      callbackResult: .error("Spotify denied access.")
+    )
+    let service = SpotifyAppRemoteService(client: client) { "provider-token" }
+    let playCompleted = expectation(description: "Pending play completed")
+    var playError: SpotifyAppRemoteServiceError?
+
+    Task { @MainActor in
+      do {
+        try await service.play(uri: "spotify:track:denied")
+      } catch {
+        playError = error as? SpotifyAppRemoteServiceError
+      }
+      playCompleted.fulfill()
+    }
+    for _ in 0..<10 where !client.events.contains(.authorizeAndPlay("spotify:track:denied")) {
+      await Task.yield()
+    }
+
+    do {
+      _ = try await service.handleOpenURL(callback)
+      XCTFail("Expected callback authorization error")
+    } catch {
+      XCTAssertEqual(
+        error as? SpotifyAppRemoteServiceError,
+        .authorizationFailed("Spotify denied access.")
+      )
+    }
+    await fulfillment(of: [playCompleted], timeout: 1)
+    XCTAssertEqual(playError, .authorizationFailed("Spotify denied access."))
+  }
+
+  func testCallbackConnectionFailureCompletesPendingPlay() async {
+    let callback = URL(string: "ai.mapier.swipe://spotify-app-remote-callback#access_token=fresh")!
+    let client = RecordingAppRemoteClient(
+      isConnected: false,
+      connectError: RemoteClientTestError.connectionFailed,
+      connectFailureCount: 2,
+      callbackResult: .token("callback-token")
+    )
+    let service = SpotifyAppRemoteService(client: client) { "provider-token" }
+    let playCompleted = expectation(description: "Pending play completed")
+    var playFailed = false
+
+    Task { @MainActor in
+      do {
+        try await service.play(uri: "spotify:track:connection-failure")
+      } catch {
+        playFailed = true
+      }
+      playCompleted.fulfill()
+    }
+    for _ in 0..<10
+    where !client.events.contains(.authorizeAndPlay("spotify:track:connection-failure")) {
+      await Task.yield()
+    }
+
+    do {
+      _ = try await service.handleOpenURL(callback)
+      XCTFail("Expected callback connection error")
+    } catch {
+      XCTAssertTrue(error is RemoteClientTestError)
+    }
+    await fulfillment(of: [playCompleted], timeout: 1)
+    XCTAssertTrue(playFailed)
+  }
+
+  func testMissingAuthorizationCallbackTimesOutPendingPlay() async {
+    let sleeper = ControlledAuthorizationSleep()
+    let client = RecordingAppRemoteClient(
+      isConnected: false,
+      connectError: RemoteClientTestError.connectionFailed
+    )
+    let service = SpotifyAppRemoteService(
+      client: client,
+      accessToken: { "provider-token" },
+      authorizationTimeoutSleep: sleeper.sleep
+    )
+    let playCompleted = expectation(description: "Pending play completed")
+    var playError: SpotifyAppRemoteServiceError?
+
+    Task { @MainActor in
+      do {
+        try await service.play(uri: "spotify:track:no-callback")
+      } catch {
+        playError = error as? SpotifyAppRemoteServiceError
+      }
+      playCompleted.fulfill()
+    }
+    for _ in 0..<10 where !client.events.contains(.authorizeAndPlay("spotify:track:no-callback")) {
+      await Task.yield()
+    }
+    sleeper.finish()
+
+    await fulfillment(of: [playCompleted], timeout: 1)
+    XCTAssertEqual(playError, .authorizationTimedOut)
   }
 
   func testCallbackStoresReturnedTokenAndReconnects() async throws {
@@ -108,17 +244,20 @@ private final class RecordingAppRemoteClient: SpotifyAppRemoteClient {
   private(set) var events: [Event] = []
 
   private let connectError: Error?
+  private var connectFailuresRemaining: Int
   private let canAuthorize: Bool
   private let callbackResult: SpotifyAppRemoteCallbackResult
 
   init(
     isConnected: Bool,
     connectError: Error? = nil,
+    connectFailureCount: Int? = nil,
     canAuthorize: Bool = true,
     callbackResult: SpotifyAppRemoteCallbackResult = .unhandled
   ) {
     self.isConnected = isConnected
     self.connectError = connectError
+    connectFailuresRemaining = connectFailureCount ?? (connectError == nil ? 0 : 1)
     self.canAuthorize = canAuthorize
     self.callbackResult = callbackResult
   }
@@ -129,7 +268,10 @@ private final class RecordingAppRemoteClient: SpotifyAppRemoteClient {
 
   func connect() async throws {
     events.append(.connect)
-    if let connectError { throw connectError }
+    if let connectError, connectFailuresRemaining > 0 {
+      connectFailuresRemaining -= 1
+      throw connectError
+    }
     isConnected = true
   }
 
@@ -173,4 +315,21 @@ private final class RecordingAccessTokenProvider {
 
 private enum RemoteClientTestError: Error {
   case connectionFailed
+}
+
+@MainActor
+private final class ControlledAuthorizationSleep {
+  private var continuation: CheckedContinuation<Void, Never>?
+  private var isFinished = false
+
+  func sleep(_: Duration) async {
+    guard !isFinished else { return }
+    await withCheckedContinuation { continuation = $0 }
+  }
+
+  func finish() {
+    isFinished = true
+    continuation?.resume()
+    continuation = nil
+  }
 }

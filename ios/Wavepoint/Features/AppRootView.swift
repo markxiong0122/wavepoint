@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 enum AppRootScreen: Equatable {
@@ -75,7 +76,21 @@ struct AppRootView: View {
       await model.restore()
     }
     .onOpenURL { url in
-      Task { try? await remotePlayback.handleOpenURL(url) }
+      Task {
+        do {
+          _ = try await remotePlayback.handleOpenURL(url)
+        } catch {
+          let nsError = error as NSError
+          Logger(subsystem: "ai.mapier.swipe", category: "SpotifyAppRemote").error(
+            "App Remote callback handling failed domain=\(nsError.domain, privacy: .public) code=\(nsError.code, privacy: .public)"
+          )
+          #if DEBUG
+            print(
+              "[Wavepoint SpotifyAppRemote] Callback handling failed domain=\(nsError.domain) code=\(nsError.code)"
+            )
+          #endif
+        }
+      }
     }
     .alert(
       "ACCOUNT NOT DELETED",

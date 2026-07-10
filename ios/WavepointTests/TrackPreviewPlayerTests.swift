@@ -94,6 +94,17 @@ final class TrackPreviewPlayerTests: XCTestCase {
     XCTAssertEqual(player.state, .ready)
     XCTAssertEqual(player.errorMessage, "Spotify couldn't play this track. Open it in Spotify instead.")
   }
+
+  func testRemoteAuthorizationFailureSurfacesItsActionableMessage() async {
+    let remote = RecordingRemotePlayer(error: SpotifyAppRemoteServiceError.authorizationTimedOut)
+    let player = TrackPreviewPlayer(engine: RecordingPreviewEngine(), remote: remote)
+    player.prepare(previewURL: nil, spotifyURI: "spotify:track:timeout")
+
+    await player.togglePlayback()
+
+    XCTAssertEqual(player.state, .ready)
+    XCTAssertEqual(player.errorMessage, "Spotify didn't finish connecting. Please try again.")
+  }
 }
 
 @MainActor

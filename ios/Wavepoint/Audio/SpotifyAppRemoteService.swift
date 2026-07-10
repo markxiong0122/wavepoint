@@ -23,6 +23,7 @@ enum SpotifyAppRemoteServiceError: LocalizedError, Equatable {
   case spotifyNotInstalled
   case notConnected
   case authorizationFailed(String)
+  case authorizationTimedOut
 
   var errorDescription: String? {
     switch self {
@@ -32,6 +33,8 @@ enum SpotifyAppRemoteServiceError: LocalizedError, Equatable {
       "Wavepoint is not connected to Spotify."
     case .authorizationFailed(let message):
       message
+    case .authorizationTimedOut:
+      "Spotify didn't finish connecting. Please try again."
     }
   }
 }
@@ -40,13 +43,20 @@ enum SpotifyAppRemoteServiceError: LocalizedError, Equatable {
 final class SpotifyAppRemoteService: SpotifyRemotePlaying {
   private let client: any SpotifyAppRemoteClient
   private let accessToken: @MainActor () async throws -> String
+  private let authorizationTimeoutSleep: @MainActor (Duration) async -> Void
+  private var authorizationContinuation: CheckedContinuation<Void, Error>?
+  private var authorizationTimeoutTask: Task<Void, Never>?
 
   init(
     client: any SpotifyAppRemoteClient,
-    accessToken: @escaping @MainActor () async throws -> String
+    accessToken: @escaping @MainActor () async throws -> String,
+    authorizationTimeoutSleep: @escaping @MainActor (Duration) async -> Void = { duration in
+      try? await Task.sleep(for: duration)
+    }
   ) {
     self.client = client
     self.accessToken = accessToken
+    self.authorizationTimeoutSleep = authorizationTimeoutSleep
   }
 
   func play(uri: String) async throws {
@@ -59,10 +69,7 @@ final class SpotifyAppRemoteService: SpotifyRemotePlaying {
     do {
       try await client.connect()
     } catch {
-      guard await client.authorizeAndPlay(uri: uri) else {
-        throw SpotifyAppRemoteServiceError.spotifyNotInstalled
-      }
-      return
+      try await requestAuthorizationAndPlay(uri: uri)
     }
 
     try await client.play(uri: uri)
@@ -86,12 +93,48 @@ final class SpotifyAppRemoteService: SpotifyRemotePlaying {
     switch client.handleOpenURL(url) {
     case .token(let token):
       client.setAccessToken(token)
-      try await client.connect()
+      do {
+        try await client.connect()
+        finishAuthorization(with: .success(()))
+      } catch {
+        finishAuthorization(with: .failure(error))
+        throw error
+      }
       return true
     case .error(let message):
-      throw SpotifyAppRemoteServiceError.authorizationFailed(message)
+      let error = SpotifyAppRemoteServiceError.authorizationFailed(message)
+      finishAuthorization(with: .failure(error))
+      throw error
     case .unhandled:
       return false
     }
+  }
+
+  private func requestAuthorizationAndPlay(uri: String) async throws {
+    try await withCheckedThrowingContinuation { continuation in
+      authorizationContinuation = continuation
+      authorizationTimeoutTask = Task { @MainActor [weak self] in
+        guard let self else { return }
+        await authorizationTimeoutSleep(.seconds(15))
+        guard !Task.isCancelled else { return }
+        finishAuthorization(
+          with: .failure(SpotifyAppRemoteServiceError.authorizationTimedOut)
+        )
+      }
+      Task { @MainActor in
+        guard await client.authorizeAndPlay(uri: uri) else {
+          finishAuthorization(with: .failure(SpotifyAppRemoteServiceError.spotifyNotInstalled))
+          return
+        }
+      }
+    }
+  }
+
+  private func finishAuthorization(with result: Result<Void, Error>) {
+    guard let authorizationContinuation else { return }
+    self.authorizationContinuation = nil
+    authorizationTimeoutTask?.cancel()
+    authorizationTimeoutTask = nil
+    authorizationContinuation.resume(with: result)
   }
 }

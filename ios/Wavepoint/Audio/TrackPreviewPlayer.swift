@@ -164,7 +164,8 @@ final class TrackPreviewPlayer {
       scheduleSegmentEnd()
     } catch {
       state = .ready
-      errorMessage = "Spotify couldn't play this track. Open it in Spotify instead."
+      errorMessage = (error as? LocalizedError)?.errorDescription
+        ?? "Spotify couldn't play this track. Open it in Spotify instead."
     }
   }
 
