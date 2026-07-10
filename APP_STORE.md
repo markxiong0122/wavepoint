@@ -21,7 +21,7 @@ Finally clear the songs buried in your Spotify Liked Songs—fast, safely, and o
 
 Wavepoint turns an overloaded Spotify library into a quick cleanup session.
 
-Hear a 15-second segment, see when a track was saved, and make one simple decision: keep it or stage it for removal. When Spotify provides a direct preview it plays inside Wavepoint. When it does not, an explicit tap can play through the Spotify app, which may open once to connect. Old songs and tracks outside your recent rotation are more likely to surface, so the forgotten corners of your library get attention first.
+Hear a 15-second segment, see when a track was saved, and make one simple decision: keep it or stage it for removal. After the deck loads, Wavepoint may open Spotify automatically with the first cleanup track. It then plays each following card through the active Spotify connection. Old songs and tracks outside your recent rotation are more likely to surface, so the forgotten corners of your library get attention first.
 
 Nothing is removed while you swipe. Wavepoint keeps every removal staged on your iPhone until you review the exact list and confirm the batch.
 
@@ -29,7 +29,7 @@ Features:
 
 - Weighted cleanup decks from your Spotify Liked Songs
 - Fast swipe, button, and undo controls
-- 15-second listening controls with optional Spotify app playback
+- Automatic 15-second listening segments through Spotify App Remote
 - Safe removal review before Spotify changes
 - Secure Spotify tokens in iOS Keychain
 - No ads, tracking, or analytics
@@ -55,7 +55,7 @@ To exercise the destructive flow safely:
 
 The app requests `user-library-read`, `user-library-modify`, `user-read-recently-played`, and `user-read-email`. It does not collect analytics or upload the user's library to a Wavepoint database.
 
-It also requests `app-remote-control`. When a direct preview URL is unavailable, the reviewer can tap **Play 15s in Spotify**. Spotify may open once to authorize or wake playback; later tracks remain in Wavepoint while the App Remote connection is active. This action is never triggered automatically.
+It also requests `app-remote-control`. After the cleanup deck loads, Wavepoint automatically asks Spotify to play the first selected track. Spotify may open once to authorize or wake playback, then returns to the matching Wavepoint card. Later cards start automatically while the App Remote connection is active. If setup fails, the reviewer can retry or continue with explicit preview controls.
 
 Account deletion is available under **Account → Delete Account** and requires a second destructive confirmation. It deletes the Supabase Auth user and local Wavepoint credentials. It does not delete the Spotify account or songs. Use only a disposable review account when testing deletion.
 

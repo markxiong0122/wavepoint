@@ -8,6 +8,8 @@
 
 **Tech Stack:** Swift 6, SwiftUI, AVFoundation, Spotify iOS SDK 5.0.1, Supabase Swift, Deno Edge Functions, XCTest, XcodeGen.
 
+> **Interaction update (July 9, 2026):** The explicit per-card App Remote interaction described below was the original implementation. It is superseded by `2026-07-09-automatic-card-playback-design.md`: Supabase login remains, Spotify may open automatically with the first cleanup track after deck loading, and following cards autoplay while the shared connection remains active.
+
 ---
 
 ## Task 1: Specify hybrid playback behavior
@@ -102,4 +104,3 @@
 5. Archive and export a signed App Store IPA. Verify its signature, bundle identifier, version/build, icon, privacy manifest, and checksum.
 6. Use Chrome to create the App Store Connect app record, populate version metadata/privacy fields, and upload build 2. Stop only at Apple-controlled processing/review or a credential/contract screen requiring Mark's personal attestation.
 7. Run the simplify and verification-before-completion reviews, commit release metadata, push the branch, and monitor CI/review feedback.
-

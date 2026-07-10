@@ -6,7 +6,7 @@ Wavepoint is an iPhone utility that helps you review and remove tracks from your
 
 ## Data Wavepoint accesses
 
-When you choose Continue with Spotify, Spotify asks you to authorize access to your account. Wavepoint requests permission to read your saved music and recent listening history, remove items from your library only after you confirm a removal batch, and control Spotify playback only after you tap a Spotify listening control.
+When you choose Continue with Spotify, Spotify asks you to authorize access to your account. Wavepoint requests permission to read your saved music and recent listening history, remove items from your library only after you confirm a removal batch, and control Spotify playback during an active cleanup session. After login and library loading, Wavepoint may open Spotify automatically with the first cleanup track, then play 15-second segments as each new card appears.
 
 Wavepoint receives Spotify access and refresh tokens needed to make those requests. Tokens are stored in the iOS Keychain on your device. Your cleanup decisions remain on your device and are not uploaded to a Wavepoint database.
 
@@ -16,7 +16,7 @@ Supabase Auth stores a Wavepoint authentication record so you can remain signed 
 
 Wavepoint does not sell personal data, use advertising SDKs, track you across apps or websites, or collect product analytics in this version. Wavepoint does not store your Spotify library, listening history, cleanup decisions, or playback history in a Wavepoint database.
 
-Spotify and Supabase process authentication and API requests under their own terms and privacy policies. Their infrastructure may process standard request information such as IP address and request time for security and service operation. Album artwork and available audio preview clips are loaded from Spotify-provided URLs. If a direct preview is unavailable and you explicitly tap the Spotify playback control, Spotify may open to authorize or play the selected track.
+Spotify and Supabase process authentication and API requests under their own terms and privacy policies. Their infrastructure may process standard request information such as IP address and request time for security and service operation. Album artwork and available audio preview clips are loaded from Spotify-provided URLs. Spotify may open automatically to authorize or play the first selected cleanup track; later tracks play through the active App Remote connection while it remains available.
 
 ## Library changes
 

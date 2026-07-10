@@ -8,6 +8,7 @@ Wavepoint is a SwiftUI iOS 17 app with bundle ID `ai.mapier.swipe`. It signs in 
 
 - Bundle ID: `ai.mapier.swipe`
 - Supabase OAuth redirect URI: `https://pvlykxebusgsgrtrkrqh.supabase.co/auth/v1/callback`
+- App Remote redirect URI: `ai.mapier.swipe://spotify-app-remote-callback`
 - APIs used: Web API and iOS where enabled
 - Development-mode testers must be added under Users Management.
 
@@ -34,7 +35,7 @@ xcodegen generate
 open Wavepoint.xcodeproj
 ```
 
-Select an Apple Development team for `ai.mapier.swipe`, then run on an iPhone or simulator. OAuth can be exercised on either. This MVP uses a Spotify-provided preview when one exists and otherwise offers Open in Spotify.
+Select an Apple Development team for `ai.mapier.swipe`, then run on an iPhone or simulator. OAuth can be exercised on either. App Remote requires the Spotify iOS app and a physical iPhone. After the cleanup deck loads, Wavepoint may open Spotify automatically with the first cleanup track; every following card autoplays a 15-second segment while the connection remains active.
 
 ## Verification
 
@@ -43,4 +44,4 @@ xcodebuild test -project Wavepoint.xcodeproj -scheme Wavepoint -destination 'pla
 xcodebuild archive -project Wavepoint.xcodeproj -scheme Wavepoint -destination 'generic/platform=iOS' -archivePath /tmp/Wavepoint.xcarchive CODE_SIGNING_ALLOWED=NO
 ```
 
-Before a release, test with an allowlisted Spotify account: callback capture, a large paginated library, preview available/unavailable states, swipe and undo, review cancel, and a deliberately small confirmed removal batch.
+Before a release, test with an allowlisted Spotify account: both callback captures, a large paginated library, the automatic first-track Spotify switch, three matching card transitions without another switch, 15-second stop, pause/resume, swipe and undo, Review stopping playback, Cancel resuming playback, and a deliberately small confirmed removal batch.
