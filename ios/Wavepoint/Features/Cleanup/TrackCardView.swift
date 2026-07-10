@@ -4,30 +4,31 @@ struct TrackCardView: View {
   let track: SpotifyTrack
   let position: Int
   let total: Int
+  let previewPlayer: TrackPreviewPlayer
+  let showsSpotifyConnectionHint: Bool
   let onRemove: () -> Void
   let onKeep: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var dragOffset: CGSize = .zero
-  @State private var previewPlayer: TrackPreviewPlayer
   @State private var isCommittingDecision = false
 
   init(
     track: SpotifyTrack,
     position: Int,
     total: Int,
-    remotePlayback: SpotifyAppRemoteService,
+    previewPlayer: TrackPreviewPlayer,
+    showsSpotifyConnectionHint: Bool,
     onRemove: @escaping () -> Void,
     onKeep: @escaping () -> Void
   ) {
     self.track = track
     self.position = position
     self.total = total
+    self.previewPlayer = previewPlayer
+    self.showsSpotifyConnectionHint = showsSpotifyConnectionHint
     self.onRemove = onRemove
     self.onKeep = onKeep
-    _previewPlayer = State(
-      initialValue: TrackPreviewPlayer(remote: remotePlayback)
-    )
   }
 
   var body: some View {
@@ -41,12 +42,6 @@ struct TrackCardView: View {
         .gesture(dragGesture(cardWidth: proxy.size.width))
     }
     .frame(maxHeight: .infinity)
-    .onAppear {
-      previewPlayer.prepare(previewURL: track.previewURL, spotifyURI: track.uri)
-    }
-    .onDisappear {
-      Task { await previewPlayer.stop() }
-    }
   }
 
   private var card: some View {
@@ -75,7 +70,10 @@ struct TrackCardView: View {
 
         previewControl
 
-        if previewPlayer.source == .spotifyRemote, previewPlayer.state == .ready {
+        if showsSpotifyConnectionHint,
+          previewPlayer.source == .spotifyRemote,
+          previewPlayer.state == .ready
+        {
           Text("Spotify may open once to connect.")
             .font(.system(size: 9, weight: .semibold, design: .monospaced))
             .foregroundStyle(WavepointTheme.mutedInk)

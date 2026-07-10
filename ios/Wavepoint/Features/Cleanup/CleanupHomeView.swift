@@ -31,6 +31,23 @@ enum CleanupScreen: Equatable {
   }
 }
 
+enum CleanupPlaybackScreen: Equatable {
+  case starting
+  case deck
+  case failed(String)
+
+  init(state: CleanupPlaybackState) {
+    switch state {
+    case .idle, .starting:
+      self = .starting
+    case .automatic, .manual:
+      self = .deck
+    case .failed(let message):
+      self = .failed(message)
+    }
+  }
+}
+
 private enum CleanupSheet: String, Identifiable {
   case account
 
@@ -39,8 +56,8 @@ private enum CleanupSheet: String, Identifiable {
 
 struct CleanupHomeView: View {
   @State private var model: CleanupSessionModel
+  @State private var playback: CleanupPlaybackCoordinator
   @State private var presentedSheet: CleanupSheet?
-  private let remotePlayback: SpotifyAppRemoteService
   let onSignOut: () -> Void
   let onDeleteAccount: () -> Void
 
@@ -51,7 +68,11 @@ struct CleanupHomeView: View {
     onDeleteAccount: @escaping () -> Void
   ) {
     _model = State(initialValue: model)
-    self.remotePlayback = remotePlayback
+    _playback = State(
+      initialValue: CleanupPlaybackCoordinator(
+        player: TrackPreviewPlayer(remote: remotePlayback)
+      )
+    )
     self.onSignOut = onSignOut
     self.onDeleteAccount = onDeleteAccount
   }
@@ -62,7 +83,7 @@ struct CleanupHomeView: View {
       case .idle, .loading:
         loadingView
       case .deciding:
-        deckView
+        playbackContent
       case .reviewing:
         RemovalReviewView(
           tracks: model.stagedRemovals,
@@ -86,6 +107,16 @@ struct CleanupHomeView: View {
       guard model.state == .idle else { return }
       await model.load()
     }
+    .task(id: playbackTaskID) {
+      guard model.state == .deciding, let track = model.currentTrack else {
+        await playback.stop()
+        return
+      }
+      await playback.present(track)
+    }
+    .onDisappear {
+      Task { await playback.stop() }
+    }
     .sheet(item: $presentedSheet) { sheet in
       switch sheet {
       case .account:
@@ -97,6 +128,22 @@ struct CleanupHomeView: View {
         .presentationDragIndicator(.hidden)
       }
     }
+  }
+
+  @ViewBuilder
+  private var playbackContent: some View {
+    switch CleanupPlaybackScreen(state: playback.state) {
+    case .starting:
+      autoplayStartingView
+    case .deck:
+      deckView
+    case .failed(let message):
+      autoplayErrorView(message)
+    }
+  }
+
+  private var playbackTaskID: String {
+    "\(CleanupScreen(state: model.state).accessibilityIdentifier):\(model.currentTrack?.id ?? "none")"
   }
 
   private var loadingView: some View {
@@ -111,6 +158,25 @@ struct CleanupHomeView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .foregroundStyle(WavepointTheme.paper)
     .accessibilityIdentifier("cleanup-loading")
+  }
+
+  private var autoplayStartingView: some View {
+    VStack(spacing: 18) {
+      CutRecordMark(size: 76)
+      ProgressView()
+        .tint(WavepointTheme.audio)
+      Text("STARTING AUTOPLAY…")
+        .font(.system(size: 12, weight: .bold, design: .monospaced))
+        .tracking(0.7)
+      Text("Spotify will open with your first cleanup track.")
+        .font(.system(size: 13, weight: .medium, design: .rounded))
+        .foregroundStyle(WavepointTheme.paper.opacity(0.68))
+    }
+    .multilineTextAlignment(.center)
+    .padding(24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .foregroundStyle(WavepointTheme.paper)
+    .accessibilityIdentifier("cleanup-autoplay-starting")
   }
 
   private var deckView: some View {
@@ -136,7 +202,8 @@ struct CleanupHomeView: View {
           track: track,
           position: model.completedCount + 1,
           total: model.totalCount,
-          remotePlayback: remotePlayback,
+          previewPlayer: playback.player,
+          showsSpotifyConnectionHint: playback.state == .manual,
           onRemove: model.removeCurrentTrack,
           onKeep: model.keepCurrentTrack
         )
@@ -231,6 +298,40 @@ struct CleanupHomeView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .foregroundStyle(WavepointTheme.paper)
     .accessibilityIdentifier("cleanup-committing")
+  }
+
+  private func autoplayErrorView(_ message: String) -> some View {
+    VStack(alignment: .leading, spacing: 18) {
+      CutRecordMark(size: 64)
+      Text("AUTOPLAY MISSED THE BEAT")
+        .font(.system(size: 12, weight: .black, design: .monospaced))
+        .foregroundStyle(WavepointTheme.remove)
+      Text(message)
+        .font(.system(size: 22, weight: .bold, design: .rounded))
+
+      Button("TRY AGAIN") {
+        guard let track = model.currentTrack else { return }
+        Task { await playback.retry(track) }
+      }
+      .font(.system(size: 12, weight: .black, design: .monospaced))
+      .foregroundStyle(WavepointTheme.ink)
+      .padding(.horizontal, 18)
+      .frame(minHeight: 50)
+      .background(WavepointTheme.keep)
+      .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
+
+      Button("CONTINUE WITHOUT AUTOPLAY") {
+        guard let track = model.currentTrack else { return }
+        Task { await playback.continueManually(with: track) }
+      }
+      .font(.system(size: 11, weight: .bold, design: .monospaced))
+      .foregroundStyle(WavepointTheme.paper)
+      .frame(minHeight: 48)
+    }
+    .padding(24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .foregroundStyle(WavepointTheme.paper)
+    .accessibilityIdentifier("cleanup-autoplay-error")
   }
 
   private func errorView(_ message: String) -> some View {

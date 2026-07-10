@@ -21,6 +21,17 @@ final class CleanupScreenTests: XCTestCase {
     )
   }
 
+  func testPlaybackStateMapsToStartingDeckOrFailure() {
+    XCTAssertEqual(CleanupPlaybackScreen(state: .idle), .starting)
+    XCTAssertEqual(CleanupPlaybackScreen(state: .starting), .starting)
+    XCTAssertEqual(CleanupPlaybackScreen(state: .automatic), .deck)
+    XCTAssertEqual(CleanupPlaybackScreen(state: .manual), .deck)
+    XCTAssertEqual(
+      CleanupPlaybackScreen(state: .failed("Try Spotify again.")),
+      .failed("Try Spotify again.")
+    )
+  }
+
   @MainActor
   func testArtworkImageFillsACompressedWideSlot() throws {
     let source = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20)).image { context in
