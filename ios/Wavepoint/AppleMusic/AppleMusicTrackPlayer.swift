@@ -52,6 +52,22 @@ actor MusicKitSongStore {
   func song(id: String) -> Song? {
     songsByID[id]
   }
+
+  func songs(ids: [String]) -> [Song]? {
+    var songs: [Song] = []
+    songs.reserveCapacity(ids.count)
+
+    for id in ids {
+      guard let song = songsByID[id] else { return nil }
+      songs.append(song)
+    }
+
+    return songs
+  }
+
+  func availableIDs(from ids: [String]) -> Set<String> {
+    Set(ids.filter { songsByID[$0] != nil })
+  }
 }
 
 @MainActor
