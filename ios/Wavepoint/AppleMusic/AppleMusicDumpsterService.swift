@@ -27,7 +27,7 @@ enum AppleMusicPlaylistClientError: LocalizedError, Equatable {
 protocol AppleMusicPlaylistClient: AnyObject {
   func fetchPlaylist(id: String) async throws -> AppleMusicPlaylistRecord?
   func createPlaylist(name: String, songIDs: [String]) async throws -> AppleMusicPlaylistRecord
-  func updatePlaylist(id: String, name: String, songIDs: [String]) async throws
+  func appendSongs(ids: [String], to playlistID: String) async throws
     -> AppleMusicPlaylistRecord
 }
 
@@ -63,11 +63,7 @@ final class AppleMusicDumpsterService {
     }
 
     do {
-      let updated = try await client.updatePlaylist(
-        id: existing.id,
-        name: Self.playlistName,
-        songIDs: originalIDs + missingIDs
-      )
+      let updated = try await client.appendSongs(ids: missingIDs, to: existing.id)
       return .dumpster(updatedCount: missingIDs.count, destinationURL: updated.destinationURL)
     } catch AppleMusicPlaylistClientError.notEditable {
       return try await createReplacement(songIDs: stagedIDs)
@@ -113,11 +109,7 @@ final class AppleMusicDumpsterService {
     }
 
     do {
-      let updated = try await client.updatePlaylist(
-        id: refreshed.id,
-        name: Self.playlistName,
-        songIDs: refreshedIDs + stillMissing
-      )
+      let updated = try await client.appendSongs(ids: stillMissing, to: refreshed.id)
       return .dumpster(
         updatedCount: newlyAddedCount,
         destinationURL: updated.destinationURL

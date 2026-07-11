@@ -24,7 +24,7 @@ final class AppleMusicDumpsterServiceTests: XCTestCase {
     XCTAssertEqual(client.events, [.create(["one", "two"])])
   }
 
-  func testExistingDumpsterMergesAndDeduplicatesSongs() async throws {
+  func testExistingDumpsterAppendsOnlyMissingSongs() async throws {
     let store = InMemoryDumpsterPlaylistStore(playlistID: "dumpster")
     let client = FakeAppleMusicPlaylistClient(
       fetchResults: [.success(playlist(id: "dumpster", songIDs: ["one", "two"]))],
@@ -39,7 +39,7 @@ final class AppleMusicDumpsterServiceTests: XCTestCase {
     XCTAssertEqual(result, .dumpster(updatedCount: 1, destinationURL: destination))
     XCTAssertEqual(
       client.events,
-      [.fetch("dumpster"), .update("dumpster", ["one", "two", "three"])]
+      [.fetch("dumpster"), .append("dumpster", ["three"])]
     )
   }
 
@@ -73,7 +73,7 @@ final class AppleMusicDumpsterServiceTests: XCTestCase {
     XCTAssertEqual(store.playlistID, "replacement")
     XCTAssertEqual(
       client.events,
-      [.fetch("old"), .update("old", ["existing", "new"]), .create(["new"])]
+      [.fetch("old"), .append("old", ["new"]), .create(["new"])]
     )
   }
 
@@ -98,9 +98,9 @@ final class AppleMusicDumpsterServiceTests: XCTestCase {
       client.events,
       [
         .fetch("dumpster"),
-        .update("dumpster", ["existing", "one", "two"]),
+        .append("dumpster", ["one", "two"]),
         .fetch("dumpster"),
-        .update("dumpster", ["existing", "one", "two"]),
+        .append("dumpster", ["two"]),
       ]
     )
   }
@@ -119,7 +119,7 @@ final class AppleMusicDumpsterServiceTests: XCTestCase {
     let result = try await service.commit(songIDs: ["one", "two"])
 
     XCTAssertEqual(result, .dumpster(updatedCount: 2, destinationURL: destination))
-    XCTAssertEqual(client.events.filter { if case .update = $0 { true } else { false } }.count, 1)
+    XCTAssertEqual(client.events.filter { if case .append = $0 { true } else { false } }.count, 1)
   }
 
   func testEmptyCommitDoesNotCreateAPlaylist() async throws {
@@ -145,7 +145,7 @@ private final class FakeAppleMusicPlaylistClient: AppleMusicPlaylistClient {
   enum Event: Equatable {
     case fetch(String)
     case create([String])
-    case update(String, [String])
+    case append(String, [String])
   }
 
   private(set) var events: [Event] = []
@@ -177,10 +177,10 @@ private final class FakeAppleMusicPlaylistClient: AppleMusicPlaylistClient {
     return createResult
   }
 
-  func updatePlaylist(id: String, name: String, songIDs: [String]) async throws
+  func appendSongs(ids songIDs: [String], to playlistID: String) async throws
     -> AppleMusicPlaylistRecord
   {
-    events.append(.update(id, songIDs))
+    events.append(.append(playlistID, songIDs))
     guard !updateResults.isEmpty else { throw DumpsterTestError.missingStub }
     return try updateResults.removeFirst().get()
   }

@@ -46,22 +46,19 @@ final class MusicKitPlaylistClient: AppleMusicPlaylistClient {
     }
   }
 
-  func updatePlaylist(id: String, name: String, songIDs: [String]) async throws
+  func appendSongs(ids songIDs: [String], to playlistID: String) async throws
     -> AppleMusicPlaylistRecord
   {
-    guard let playlist = try await fetchPlaylistValue(id: id) else {
+    guard var playlist = try await fetchPlaylistValue(id: playlistID) else {
       throw AppleMusicPlaylistClientError.playlistNotFound
     }
     let songs = try await resolveSongs(ids: songIDs)
 
     do {
-      let updated = try await library.edit(
-        playlist,
-        name: name,
-        description: Self.description,
-        items: songs
-      )
-      return record(for: updated, songIDs: songIDs)
+      for song in songs {
+        playlist = try await library.add(song, to: playlist)
+      }
+      return record(for: playlist, songIDs: songIDs)
     } catch {
       throw mapLibraryError(error)
     }
