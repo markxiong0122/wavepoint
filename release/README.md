@@ -8,6 +8,7 @@ App Store IPA files in this directory are signed distribution builds for `ai.map
 - `Wavepoint-0.1.0-4.ipa`: Spotify library removal fix uploaded to TestFlight.
 - `Wavepoint-0.1.0-5.ipa`: Spotify/Apple Music provider picker, Apple Music playback, and the `Wavepoint Dumpster 🗑️` cleanup flow, uploaded to TestFlight.
 - `Wavepoint-0.1.0-6.ipa`: autoplay recovery, adaptive cleanup-card layout, and game-feel haptics, uploaded to TestFlight.
+- `Wavepoint-0.1.0-7.ipa`: Apple Music connection recovery, repeat Dumpster batches, and Simulator state QA, uploaded to TestFlight.
 
 ## Current App Review notes
 
