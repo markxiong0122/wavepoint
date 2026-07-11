@@ -397,12 +397,12 @@ struct CleanupHomeView: View {
   }
 
   private func removeCurrentTrack() {
-    haptics.play(.decision)
+    haptics.play(.remove)
     model.removeCurrentTrack()
   }
 
   private func keepCurrentTrack() {
-    haptics.play(.decision)
+    haptics.play(.keep)
     model.keepCurrentTrack()
   }
 

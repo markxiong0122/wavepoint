@@ -10,16 +10,18 @@ final class CleanupHapticsTests: XCTestCase {
       isEnabled: true,
       selection: recorder.selection,
       mediumImpact: recorder.mediumImpact,
+      heavyImpact: recorder.heavyImpact,
       lightImpact: recorder.lightImpact,
       success: recorder.success
     )
 
     haptics.play(.threshold)
-    haptics.play(.decision)
+    haptics.play(.keep)
+    haptics.play(.remove)
     haptics.play(.undo)
     haptics.play(.success)
 
-    XCTAssertEqual(recorder.events, [.threshold, .decision, .undo, .success])
+    XCTAssertEqual(recorder.events, [.threshold, .keep, .remove, .undo, .success])
   }
 
   func testDisabledHapticsAreANoOp() {
@@ -28,11 +30,12 @@ final class CleanupHapticsTests: XCTestCase {
       isEnabled: false,
       selection: recorder.selection,
       mediumImpact: recorder.mediumImpact,
+      heavyImpact: recorder.heavyImpact,
       lightImpact: recorder.lightImpact,
       success: recorder.success
     )
 
-    haptics.play(.decision)
+    haptics.play(.remove)
 
     XCTAssertTrue(recorder.events.isEmpty)
   }
@@ -55,7 +58,8 @@ private final class HapticActionRecorder {
   private(set) var events: [CleanupHapticEvent] = []
 
   func selection() { events.append(.threshold) }
-  func mediumImpact() { events.append(.decision) }
+  func mediumImpact() { events.append(.keep) }
+  func heavyImpact() { events.append(.remove) }
   func lightImpact() { events.append(.undo) }
   func success() { events.append(.success) }
 }

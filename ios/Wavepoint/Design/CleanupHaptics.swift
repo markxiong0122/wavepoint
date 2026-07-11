@@ -3,7 +3,8 @@ import UIKit
 
 enum CleanupHapticEvent: Equatable {
   case threshold
-  case decision
+  case keep
+  case remove
   case undo
   case success
 }
@@ -28,12 +29,14 @@ final class CleanupHaptics {
 
   static let live: CleanupHaptics = {
     let selection = UISelectionFeedbackGenerator()
-    let decision = UIImpactFeedbackGenerator(style: .medium)
+    let keep = UIImpactFeedbackGenerator(style: .medium)
+    let remove = UIImpactFeedbackGenerator(style: .heavy)
     let undo = UIImpactFeedbackGenerator(style: .light)
     let notification = UINotificationFeedbackGenerator()
 
     selection.prepare()
-    decision.prepare()
+    keep.prepare()
+    remove.prepare()
     undo.prepare()
     notification.prepare()
 
@@ -44,8 +47,12 @@ final class CleanupHaptics {
         selection.prepare()
       },
       mediumImpact: {
-        decision.impactOccurred()
-        decision.prepare()
+        keep.impactOccurred()
+        keep.prepare()
+      },
+      heavyImpact: {
+        remove.impactOccurred()
+        remove.prepare()
       },
       lightImpact: {
         undo.impactOccurred()
@@ -61,6 +68,7 @@ final class CleanupHaptics {
   private let isEnabled: Bool
   private let selection: Action
   private let mediumImpact: Action
+  private let heavyImpact: Action
   private let lightImpact: Action
   private let success: Action
 
@@ -68,12 +76,14 @@ final class CleanupHaptics {
     isEnabled: Bool,
     selection: @escaping Action,
     mediumImpact: @escaping Action,
+    heavyImpact: @escaping Action,
     lightImpact: @escaping Action,
     success: @escaping Action
   ) {
     self.isEnabled = isEnabled
     self.selection = selection
     self.mediumImpact = mediumImpact
+    self.heavyImpact = heavyImpact
     self.lightImpact = lightImpact
     self.success = success
   }
@@ -83,8 +93,10 @@ final class CleanupHaptics {
     switch event {
     case .threshold:
       selection()
-    case .decision:
+    case .keep:
       mediumImpact()
+    case .remove:
+      heavyImpact()
     case .undo:
       lightImpact()
     case .success:
