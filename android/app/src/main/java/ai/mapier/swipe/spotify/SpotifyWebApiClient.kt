@@ -39,7 +39,6 @@ interface SpotifyHttpTransport {
 
 interface SpotifyLibraryService {
   suspend fun fetchSavedTracks(): List<LibraryTrack>
-  suspend fun fetchRecentlyPlayedTrackIds(): Set<String>
   suspend fun removeFromLibrary(uris: List<String>): Int
 }
 
@@ -97,13 +96,6 @@ class SpotifyWebApiClient(
       nextUrl = page.next
     }
     return tracks
-  }
-
-  override suspend fun fetchRecentlyPlayedTrackIds(): Set<String> {
-    val page = decode<RecentlyPlayedPage>(
-      authorized("$BASE_URL/me/player/recently-played?limit=50"),
-    )
-    return page.items.mapNotNull { it.track.id }.toSet()
   }
 
   override suspend fun removeFromLibrary(uris: List<String>): Int {

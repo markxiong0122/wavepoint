@@ -8,7 +8,6 @@ data class SpotifyAuthorizationRequest(
     "user-read-private",
     "user-library-read",
     "user-library-modify",
-    "user-read-recently-played",
     "app-remote-control",
   ),
 )

@@ -5,6 +5,10 @@ import ai.mapier.swipe.audio.PreviewScheduler
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifyRemoteGateway
 import ai.mapier.swipe.account.AccountDeleting
+import ai.mapier.swipe.analytics.AnalyticsCapturing
+import ai.mapier.swipe.analytics.AnalyticsEvent
+import ai.mapier.swipe.analytics.AnalyticsProvider
+import ai.mapier.swipe.analytics.CrashReporting
 import ai.mapier.swipe.auth.AppSession
 import ai.mapier.swipe.auth.SpotifyAuthSession
 import ai.mapier.swipe.auth.SpotifyAuthenticator
@@ -28,6 +32,34 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WavepointControllerTest {
+  @Test
+  fun capturesTheClosedCleanupFunnelWithoutSongData() = runTest {
+    val analytics = RecordingAnalytics()
+    val controller = controller(
+      eligibility = SpotifyAccountEligibility.PREMIUM,
+      library = FakeLibraryService(listOf(track("one"))),
+      analytics = analytics,
+    )
+
+    controller.restore()
+    runCurrent()
+    controller.removeCurrent()
+    runCurrent()
+    controller.confirmRemovals()
+    runCurrent()
+
+    assertEquals(
+      listOf(
+        AnalyticsEvent.ProviderConnectionSucceeded(AnalyticsProvider.SPOTIFY),
+        AnalyticsEvent.CleanupDeckLoaded(AnalyticsProvider.SPOTIFY),
+        AnalyticsEvent.FirstDecisionCompleted(AnalyticsProvider.SPOTIFY),
+        AnalyticsEvent.ReviewOpened(AnalyticsProvider.SPOTIFY),
+        AnalyticsEvent.CleanupSessionCompleted(AnalyticsProvider.SPOTIFY),
+      ),
+      analytics.events,
+    )
+  }
+
   @Test
   fun premiumRestoreLoadsTheDeckAndAutoplaysItsFirstCard() = runTest {
     val library = FakeLibraryService(listOf(track("buried")))
@@ -180,6 +212,8 @@ class WavepointControllerTest {
     gateway: FakeRemoteGateway = FakeRemoteGateway(),
     accountDeleting: AccountDeleting = FakeAccountDeleting(),
     authenticator: RestoredAuthenticator = RestoredAuthenticator(),
+    analytics: AnalyticsCapturing = RecordingAnalytics(),
+    crashReporting: CrashReporting = RecordingCrashReporting(),
   ): WavepointController {
     val tokens = MemoryTokenStore(SpotifyProviderTokens("access", "refresh"))
     val appSession = AppSession(
@@ -196,8 +230,24 @@ class WavepointControllerTest {
       player = player,
       accountDeleting = accountDeleting,
       scope = backgroundScope,
+      analytics = analytics,
+      crashReporting = crashReporting,
       deckSeed = { 42L },
     )
+  }
+}
+
+private class RecordingAnalytics : AnalyticsCapturing {
+  val events = mutableListOf<AnalyticsEvent>()
+  override fun capture(event: AnalyticsEvent) {
+    events += event
+  }
+}
+
+private class RecordingCrashReporting : CrashReporting {
+  val categories = mutableListOf<ai.mapier.swipe.analytics.AnalyticsErrorCategory>()
+  override fun record(category: ai.mapier.swipe.analytics.AnalyticsErrorCategory) {
+    categories += category
   }
 }
 
@@ -223,8 +273,6 @@ private class FakeLibraryService(
     savedTrackCalls += 1
     return tracks
   }
-
-  override suspend fun fetchRecentlyPlayedTrackIds(): Set<String> = emptySet()
 
   override suspend fun removeFromLibrary(uris: List<String>): Int {
     removalCalls += uris

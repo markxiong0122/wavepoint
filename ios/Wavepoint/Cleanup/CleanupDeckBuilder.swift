@@ -14,7 +14,6 @@ struct CleanupDeckBuilder: Sendable {
 
   func build(
     from tracks: [LibraryTrack],
-    recentTrackIDs: Set<String>,
     seed: UInt64 = UInt64.random(in: UInt64.min...UInt64.max)
   ) -> [LibraryTrack] {
     var generator = SplitMix64(seed: seed)
@@ -26,10 +25,7 @@ struct CleanupDeckBuilder: Sendable {
           Double.random(in: 0..<1, using: &generator),
           Double.leastNonzeroMagnitude
         )
-        let weight = selectionWeight(
-          for: track,
-          recentTrackIDs: recentTrackIDs
-        )
+        let weight = selectionWeight(for: track)
         return (track: track, priority: log(randomValue) / weight)
       }
       .sorted { lhs, rhs in
@@ -42,16 +38,12 @@ struct CleanupDeckBuilder: Sendable {
       .map(\.track)
   }
 
-  func selectionWeight(
-    for track: LibraryTrack,
-    recentTrackIDs: Set<String>
-  ) -> Double {
+  func selectionWeight(for track: LibraryTrack) -> Double {
     let ageInYears = track.addedAt.map {
       max(0, referenceDate.timeIntervalSince($0) / (365.25 * 24 * 60 * 60))
     } ?? 0
     let ageWeight = 1 + min(ageInYears, 12)
-    let rotationWeight = recentTrackIDs.contains(track.id) ? 0.2 : 1
-    return ageWeight * rotationWeight
+    return ageWeight
   }
 }
 

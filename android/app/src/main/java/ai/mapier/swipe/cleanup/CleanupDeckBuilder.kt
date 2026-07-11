@@ -12,14 +12,13 @@ class CleanupDeckBuilder(
 ) {
   fun build(
     tracks: List<LibraryTrack>,
-    recentTrackIds: Set<String>,
     seed: Long = kotlin.random.Random.nextLong(),
   ): List<LibraryTrack> {
     val random = SplitMix64(seed)
     return tracks
       .map { track ->
         val randomValue = max(random.nextDouble(), Double.MIN_VALUE)
-        val weight = selectionWeight(track, recentTrackIds)
+        val weight = selectionWeight(track)
         WeightedTrack(track, ln(randomValue) / weight)
       }
       .sortedWith(
@@ -30,16 +29,12 @@ class CleanupDeckBuilder(
       .map { it.track }
   }
 
-  fun selectionWeight(
-    track: LibraryTrack,
-    recentTrackIds: Set<String>,
-  ): Double {
+  fun selectionWeight(track: LibraryTrack): Double {
     val ageInYears = track.addedAt?.let { addedAt ->
       max(0.0, Duration.between(addedAt, referenceDate).seconds / SECONDS_PER_YEAR)
     } ?: 0.0
     val ageWeight = 1 + min(ageInYears, 12.0)
-    val rotationWeight = if (track.id in recentTrackIds) 0.2 else 1.0
-    return ageWeight * rotationWeight
+    return ageWeight
   }
 
   private data class WeightedTrack(

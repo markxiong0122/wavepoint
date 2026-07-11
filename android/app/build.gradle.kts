@@ -1,10 +1,20 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val postHogProjectToken = providers.gradleProperty("WAVEPOINT_POSTHOG_PROJECT_TOKEN")
+  .orElse("")
+val postHogHost = providers.gradleProperty("WAVEPOINT_POSTHOG_HOST")
+  .orElse("https://us.i.posthog.com")
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
+}
+
+if (file("google-services.json").exists()) {
+  apply(plugin = "com.google.gms.google-services")
+  apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {
@@ -25,6 +35,8 @@ android {
       "\"sb_publishable_sPaFSnNn9t3A7Id_zc1vsA_YxQJN3Dz\"",
     )
     buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"6603fd9c06fe40bd823ecacd102c96ed\"")
+    buildConfigField("String", "POSTHOG_PROJECT_TOKEN", "\"${postHogProjectToken.get()}\"")
+    buildConfigField("String", "POSTHOG_HOST", "\"${postHogHost.get()}\"")
     buildConfigField(
       "String",
       "SPOTIFY_APP_REMOTE_REDIRECT_URI",
@@ -76,6 +88,9 @@ dependencies {
   implementation(files("../spotify-app-remote/spotify-app-remote-release-0.8.0.aar"))
   implementation(libs.coil.compose)
   implementation(libs.coil.network.okhttp)
+  implementation(libs.posthog.android)
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.crashlytics)
 
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)

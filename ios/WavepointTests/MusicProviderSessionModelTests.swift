@@ -4,6 +4,25 @@ import XCTest
 
 @MainActor
 final class MusicProviderSessionModelTests: XCTestCase {
+  func testAppleMusicConnectionCapturesStartAndSuccess() async {
+    let analytics = RecordingAnalytics()
+    let model = MusicProviderSessionModel(
+      appleMusicAuthorizer: FakeAppleMusicAuthorizer(result: .eligible),
+      selectionStore: InMemoryMusicProviderSelectionStore(),
+      analytics: analytics
+    )
+
+    await model.connectAppleMusic()
+
+    XCTAssertEqual(
+      analytics.events,
+      [
+        .providerConnectionStarted(.appleMusic),
+        .providerConnectionSucceeded(.appleMusic),
+      ]
+    )
+  }
+
   func testRestoreWithoutSelectionShowsProviderPicker() async {
     let model = MusicProviderSessionModel(
       appleMusicAuthorizer: FakeAppleMusicAuthorizer(result: .eligible),

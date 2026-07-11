@@ -39,14 +39,20 @@ final class CleanupSessionModel {
 
   private let service: any CleanupLibraryServing
   private let deckBuilder: CleanupDeckBuilder
+  private let analytics: any AnalyticsCapturing
+  private let crashReporting: any CrashReporting
   private var committedTrackIDs: Set<String> = []
 
   init(
     service: any CleanupLibraryServing,
-    deckBuilder: CleanupDeckBuilder = CleanupDeckBuilder()
+    deckBuilder: CleanupDeckBuilder = CleanupDeckBuilder(),
+    analytics: any AnalyticsCapturing = NoOpAnalytics(),
+    crashReporting: any CrashReporting = NoOpCrashReporting()
   ) {
     self.service = service
     self.deckBuilder = deckBuilder
+    self.analytics = analytics
+    self.crashReporting = crashReporting
   }
 
   var currentTrack: LibraryTrack? {
@@ -75,15 +81,13 @@ final class CleanupSessionModel {
     state = .loading
 
     do {
-      async let savedTracks = service.fetchLibraryTracks()
-      async let recentIDs = service.fetchRecentlyPlayedTrackIDs()
       deck = try await deckBuilder.build(
-        from: savedTracks,
-        recentTrackIDs: recentIDs
+        from: service.fetchLibraryTracks()
       )
       decisions = []
       committedTrackIDs = []
       alreadyCommittedCount = 0
+      analytics.capture(.cleanupDeckLoaded(AnalyticsProvider(provider)))
       state =
         deck.isEmpty
         ? .complete(
@@ -91,6 +95,7 @@ final class CleanupSessionModel {
         )
         : .deciding
     } catch {
+      crashReporting.record(.libraryLoad)
       state = .failed(error.localizedDescription)
     }
   }
@@ -137,7 +142,9 @@ final class CleanupSessionModel {
           result: finalResult
         )
       )
+      analytics.capture(.cleanupSessionCompleted(AnalyticsProvider(provider)))
     } catch CleanupCommitError.partial(let committedCount, _) {
+      crashReporting.record(.commit)
       let committedTracks = stagedRemovals.prefix(committedCount)
       committedTrackIDs.formUnion(committedTracks.map(\.commitID))
       alreadyCommittedCount += committedTracks.count
@@ -148,6 +155,7 @@ final class CleanupSessionModel {
         ).localizedDescription
       )
     } catch {
+      crashReporting.record(.commit)
       state = .failed(error.localizedDescription)
     }
   }
@@ -158,6 +166,9 @@ final class CleanupSessionModel {
   }
 
   func reset() {
+    if !decisions.isEmpty, !isComplete {
+      analytics.capture(.cleanupSessionAbandoned(AnalyticsProvider(provider)))
+    }
     state = .idle
     deck = []
     decisions = []
@@ -165,8 +176,16 @@ final class CleanupSessionModel {
     alreadyCommittedCount = 0
   }
 
+  private var isComplete: Bool {
+    if case .complete = state { return true }
+    return false
+  }
+
   private func decide(_ outcome: CleanupOutcome) {
     guard state == .deciding, let currentTrack else { return }
+    if decisions.isEmpty {
+      analytics.capture(.firstDecisionCompleted(AnalyticsProvider(provider)))
+    }
     decisions.append(CleanupDecision(track: currentTrack, outcome: outcome))
     if decisions.count == deck.count {
       finishDeciding()
@@ -184,8 +203,10 @@ final class CleanupSessionModel {
             : .removed(count: alreadyCommittedCount)
         )
       )
+      analytics.capture(.cleanupSessionCompleted(AnalyticsProvider(provider)))
     } else {
       state = .reviewing
+      analytics.capture(.reviewOpened(AnalyticsProvider(provider)))
     }
   }
 }

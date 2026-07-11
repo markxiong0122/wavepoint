@@ -12,6 +12,9 @@ struct WavepointApp: App {
 
   init() {
     do {
+      let analytics = PostHogAnalytics.make()
+      analytics.capture(.appOpened)
+      let crashReporting = FirebaseCrashReporting.make()
       let configuration = try AppConfiguration.load()
       let tokenStore = KeychainSpotifyTokenStore()
       let supabaseClient = SupabaseSpotifyAuthenticator.makeClient(
@@ -30,7 +33,9 @@ struct WavepointApp: App {
 
       let providerModel = MusicProviderSessionModel(
         appleMusicAuthorizer: MusicKitAuthorizationService(),
-        selectionStore: UserDefaultsMusicProviderSelectionStore()
+        selectionStore: UserDefaultsMusicProviderSelectionStore(),
+        analytics: analytics,
+        crashReporting: crashReporting
       )
       let spotifyAuthenticator = try SupabaseSpotifyAuthenticator(
         client: supabaseClient,
@@ -43,9 +48,15 @@ struct WavepointApp: App {
           client: supabaseClient,
           configuration: configuration
         ),
-        eligibilityChecker: spotifyClient
+        eligibilityChecker: spotifyClient,
+        analytics: analytics,
+        crashReporting: crashReporting
       )
-      let spotifyCleanupModel = CleanupSessionModel(service: spotifyClient)
+      let spotifyCleanupModel = CleanupSessionModel(
+        service: spotifyClient,
+        analytics: analytics,
+        crashReporting: crashReporting
+      )
       let spotifyPlayback = SpotifyAppRemoteService(
         client: SpotifySDKAppRemoteClient(
           clientID: configuration.spotifyClientID,
@@ -66,7 +77,11 @@ struct WavepointApp: App {
       ) { songIDs in
         try await dumpsterService.commit(songIDs: songIDs)
       }
-      let appleMusicCleanupModel = CleanupSessionModel(service: appleMusicService)
+      let appleMusicCleanupModel = CleanupSessionModel(
+        service: appleMusicService,
+        analytics: analytics,
+        crashReporting: crashReporting
+      )
       let appleMusicPlayback = AppleMusicTrackPlayer(
         client: SystemAppleMusicPlayerClient(songStore: songStore)
       )

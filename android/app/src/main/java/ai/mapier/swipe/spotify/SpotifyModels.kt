@@ -88,12 +88,6 @@ internal data class SavedTrackItem(
 }
 
 @Serializable
-internal data class RecentlyPlayedPage(val items: List<RecentlyPlayedItem>)
-
-@Serializable
-internal data class RecentlyPlayedItem(val track: TrackPayload)
-
-@Serializable
 internal data class TrackPayload(
   val id: String? = null,
   val uri: String,

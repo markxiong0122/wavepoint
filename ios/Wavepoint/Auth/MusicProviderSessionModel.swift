@@ -54,14 +54,20 @@ final class MusicProviderSessionModel {
 
   private let appleMusicAuthorizer: any AppleMusicAuthorizing
   private let selectionStore: any MusicProviderSelectionStoring
+  private let analytics: any AnalyticsCapturing
+  private let crashReporting: any CrashReporting
 
   init(
     appleMusicAuthorizer: any AppleMusicAuthorizing,
     selectionStore: any MusicProviderSelectionStoring,
+    analytics: any AnalyticsCapturing = NoOpAnalytics(),
+    crashReporting: any CrashReporting = NoOpCrashReporting(),
     initialState: MusicProviderSessionState = .restoring
   ) {
     self.appleMusicAuthorizer = appleMusicAuthorizer
     self.selectionStore = selectionStore
+    self.analytics = analytics
+    self.crashReporting = crashReporting
     state = initialState
   }
 
@@ -69,6 +75,7 @@ final class MusicProviderSessionModel {
     switch selectionStore.selectedProvider {
     case nil:
       state = .providerPicker
+      analytics.capture(.providerPickerViewed)
     case .spotify:
       state = .spotifySelected
     case .appleMusic:
@@ -83,6 +90,7 @@ final class MusicProviderSessionModel {
   }
 
   func connectAppleMusic() async {
+    analytics.capture(.providerConnectionStarted(.appleMusic))
     selectionStore.selectedProvider = .appleMusic
     state = .authorizingAppleMusic
     await evaluateAppleMusic(requestPermission: true)
@@ -108,22 +116,30 @@ final class MusicProviderSessionModel {
       switch eligibility {
       case .eligible:
         state = .appleMusicReady
+        analytics.capture(.providerConnectionSucceeded(.appleMusic))
       case .permissionNotDetermined:
         state = .providerPicker
       case .permissionDenied:
         state = .appleMusicPermissionDenied
+        analytics.capture(.providerConnectionFailed(.appleMusic, .authorization))
       case .restricted:
         state = .appleMusicRestricted
+        analytics.capture(.providerConnectionFailed(.appleMusic, .authorization))
       case .privacyAcknowledgementRequired:
         state = .appleMusicPrivacyAcknowledgementRequired
+        analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))
       case .subscriptionRequired:
         state = .appleMusicSubscriptionRequired
+        analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))
       case .syncLibraryRequired:
         state = .appleMusicSyncLibraryRequired
+        analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))
       }
     } catch is CancellationError {
       return
     } catch {
+      analytics.capture(.providerConnectionFailed(.appleMusic, .unknown))
+      crashReporting.record(.unknown)
       state = .failed(error.localizedDescription)
     }
   }

@@ -2,18 +2,16 @@ import XCTest
 @testable import Wavepoint
 
 final class CleanupDeckBuilderTests: XCTestCase {
-  func testOlderAndOutsideRotationTracksReceiveHigherSelectionWeights() {
+  func testOlderTracksReceiveHigherSelectionWeightsWithoutUsingListeningHistory() {
     let now = date("2026-01-01T00:00:00Z")
     let builder = CleanupDeckBuilder(referenceDate: now)
     let old = track(id: "old", addedAt: date("2018-01-01T00:00:00Z"))
     let new = track(id: "new", addedAt: date("2025-12-01T00:00:00Z"))
 
-    let oldWeight = builder.selectionWeight(for: old, recentTrackIDs: [])
-    let newWeight = builder.selectionWeight(for: new, recentTrackIDs: [])
-    let recentOldWeight = builder.selectionWeight(for: old, recentTrackIDs: ["old"])
+    let oldWeight = builder.selectionWeight(for: old)
+    let newWeight = builder.selectionWeight(for: new)
 
     XCTAssertGreaterThan(oldWeight, newWeight)
-    XCTAssertLessThan(recentOldWeight, oldWeight)
   }
 
   func testSeedProducesARepeatableWeightedShuffle() {
@@ -25,9 +23,9 @@ final class CleanupDeckBuilderTests: XCTestCase {
     }
     let builder = CleanupDeckBuilder(referenceDate: date("2026-01-01T00:00:00Z"))
 
-    let first = builder.build(from: tracks, recentTrackIDs: [], seed: 42)
-    let second = builder.build(from: tracks, recentTrackIDs: [], seed: 42)
-    let different = builder.build(from: tracks, recentTrackIDs: [], seed: 7)
+    let first = builder.build(from: tracks, seed: 42)
+    let second = builder.build(from: tracks, seed: 42)
+    let different = builder.build(from: tracks, seed: 7)
 
     XCTAssertEqual(first.map(\.id), second.map(\.id))
     XCTAssertNotEqual(first.map(\.id), different.map(\.id))
@@ -39,7 +37,7 @@ final class CleanupDeckBuilderTests: XCTestCase {
       track(id: String(format: "%03d", $0), addedAt: Date(timeIntervalSince1970: 0))
     }
 
-    let deck = CleanupDeckBuilder().build(from: tracks, recentTrackIDs: [], seed: 1)
+    let deck = CleanupDeckBuilder().build(from: tracks, seed: 1)
 
     XCTAssertEqual(deck.count, 50)
   }
@@ -60,8 +58,7 @@ final class CleanupDeckBuilderTests: XCTestCase {
     )
     let builder = CleanupDeckBuilder(referenceDate: date("2026-01-01T00:00:00Z"))
 
-    XCTAssertEqual(builder.selectionWeight(for: track, recentTrackIDs: []), 1)
-    XCTAssertEqual(builder.selectionWeight(for: track, recentTrackIDs: [track.id]), 0.2)
+    XCTAssertEqual(builder.selectionWeight(for: track), 1)
   }
 
   private func track(id: String, addedAt: Date) -> LibraryTrack {

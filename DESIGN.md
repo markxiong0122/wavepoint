@@ -141,7 +141,7 @@ Motion must make the next decision available quickly. It must never become a rew
 ## Spotify implementation constraints
 
 - Use `added_at` for save age.
-- Describe recent evidence as “outside recent rotation”; do not claim an exact last-listened date or play count.
+- Do not imply recent-listening evidence or claim an exact last-listened date or play count. Production decks use saved age only.
 - Play a 15-second segment when Spotify supplies a preview URL. Treat deprecated nullable preview URLs as optional and always provide Open in Spotify.
 - Require an initiating user gesture before expecting continuous segment playback.
 - Stage and batch library removals through the current generic library endpoint.

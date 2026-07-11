@@ -36,6 +36,5 @@ enum CleanupCommitError: LocalizedError, Equatable, Sendable {
 protocol CleanupLibraryServing: Sendable {
   var provider: MusicProvider { get }
   func fetchLibraryTracks() async throws -> [LibraryTrack]
-  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String>
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult
 }

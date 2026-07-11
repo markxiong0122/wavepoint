@@ -83,25 +83,6 @@ final class SpotifyWebAPIClientTests: XCTestCase {
       requests[1].url?.absoluteString, "https://api.spotify.com/v1/me/tracks?offset=1&limit=50")
   }
 
-  func testFetchRecentlyPlayedReturnsTrackIDs() async throws {
-    let transport = RecordingSpotifyTransport(responses: [
-      response(
-        status: 200,
-        body: """
-          {"items":[
-            {"track":\(trackJSON(id: "recent-1")),"played_at":"2026-07-09T12:00:00Z"},
-            {"track":\(trackJSON(id: "recent-2")),"played_at":"2026-07-09T11:00:00Z"}
-          ],"next":null}
-          """
-      )
-    ])
-    let client = SpotifyWebAPIClient(transport: transport) { _ in "token" }
-
-    let ids = try await client.fetchRecentlyPlayedTrackIDs()
-
-    XCTAssertEqual(ids, ["recent-1", "recent-2"])
-  }
-
   func testUnauthorizedResponseMapsToAuthorizationExpired() async {
     let transport = RecordingSpotifyTransport(responses: [response(status: 401, body: "{}")])
     let client = SpotifyWebAPIClient(transport: transport) { forceRefresh in

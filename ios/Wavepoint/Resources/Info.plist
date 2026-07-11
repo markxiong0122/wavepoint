@@ -43,6 +43,10 @@
 	<string>Wavepoint uses your Apple Music library to play cleanup samples and create a Dumpster playlist for songs you choose to review.</string>
 	<key>OAUTH_CALLBACK_URL</key>
 	<string>$(OAUTH_CALLBACK_URL)</string>
+	<key>POSTHOG_HOST</key>
+	<string>$(POSTHOG_HOST)</string>
+	<key>POSTHOG_PROJECT_TOKEN</key>
+	<string>$(POSTHOG_PROJECT_TOKEN)</string>
 	<key>SPOTIFY_APP_REMOTE_CALLBACK_URL</key>
 	<string>$(SPOTIFY_APP_REMOTE_CALLBACK_URL)</string>
 	<key>SPOTIFY_CLIENT_ID</key>

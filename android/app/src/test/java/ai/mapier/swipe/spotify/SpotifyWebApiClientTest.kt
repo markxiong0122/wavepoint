@@ -61,14 +61,6 @@ class SpotifyWebApiClientTest {
   }
 
   @Test
-  fun recentlyPlayedReturnsTrackIds() = runTest {
-    val body = """{"items":[{"track":${trackJson("one")}},{"track":${trackJson("two")}}]}"""
-    val client = SpotifyWebApiClient(RecordingTransport(response(200, body))) { "token" }
-
-    assertEquals(setOf("one", "two"), client.fetchRecentlyPlayedTrackIds())
-  }
-
-  @Test
   fun unauthorizedResponseForcesOneTokenRefreshAndRetry() = runTest {
     val transport = RecordingTransport(
       response(401, "{}"),

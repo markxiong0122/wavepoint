@@ -5,10 +5,46 @@ import XCTest
 
 @MainActor
 final class CleanupSessionModelTests: XCTestCase {
+  func testCapturesTheClosedCleanupFunnelWithoutSongData() async {
+    let analytics = RecordingAnalytics()
+    let model = CleanupSessionModel(
+      service: FakeCleanupLibraryService(tracks: [track(id: "one", addedAt: .distantPast)]),
+      analytics: analytics
+    )
+
+    await model.load()
+    model.removeCurrentTrack()
+    await model.confirmRemovals()
+
+    XCTAssertEqual(
+      analytics.events,
+      [
+        .cleanupDeckLoaded(.spotify),
+        .firstDecisionCompleted(.spotify),
+        .reviewOpened(.spotify),
+        .cleanupSessionCompleted(.spotify),
+      ]
+    )
+  }
+
+  func testReportsOnlyCoarseLoadFailureCategory() async {
+    let crashes = RecordingCrashReporting()
+    let model = CleanupSessionModel(
+      service: FakeCleanupLibraryService(
+        tracks: [],
+        loadError: SpotifyWebAPIError.rateLimited
+      ),
+      crashReporting: crashes
+    )
+
+    await model.load()
+
+    XCTAssertEqual(crashes.categories, [.libraryLoad])
+  }
+
   func testProviderChangeConfirmationIsRequiredOnlyAfterAUserDecision() async {
     let service = FakeCleanupLibraryService(
-      tracks: [track(id: "one", addedAt: .distantPast)],
-      recentIDs: []
+      tracks: [track(id: "one", addedAt: .distantPast)]
     )
     let model = CleanupSessionModel(service: service)
 
@@ -21,7 +57,7 @@ final class CleanupSessionModelTests: XCTestCase {
   func testLoadBuildsRankedDeckAndStartsDeciding() async {
     let old = track(id: "old", addedAt: Date(timeIntervalSince1970: 100))
     let recent = track(id: "recent", addedAt: Date(timeIntervalSince1970: 0))
-    let service = FakeCleanupLibraryService(tracks: [recent, old], recentIDs: ["recent"])
+    let service = FakeCleanupLibraryService(tracks: [recent, old])
     let model = CleanupSessionModel(service: service)
 
     await model.load()
@@ -216,7 +252,6 @@ final class CleanupSessionModelTests: XCTestCase {
 private actor FakeCleanupLibraryService: CleanupLibraryServing {
   nonisolated let provider: MusicProvider
   private let tracks: [LibraryTrack]
-  private let recentIDs: Set<String>
   private let loadError: (any Error)?
   private let commitResult: CleanupCommitResult?
   private let commitError: (any Error)?
@@ -225,14 +260,12 @@ private actor FakeCleanupLibraryService: CleanupLibraryServing {
   init(
     provider: MusicProvider = .spotify,
     tracks: [LibraryTrack],
-    recentIDs: Set<String> = [],
     loadError: (any Error)? = nil,
     commitResult: CleanupCommitResult? = nil,
     commitError: (any Error)? = nil
   ) {
     self.provider = provider
     self.tracks = tracks
-    self.recentIDs = recentIDs
     self.loadError = loadError
     self.commitResult = commitResult
     self.commitError = commitError
@@ -241,10 +274,6 @@ private actor FakeCleanupLibraryService: CleanupLibraryServing {
   func fetchLibraryTracks() async throws -> [LibraryTrack] {
     if let loadError { throw loadError }
     return tracks
-  }
-
-  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String> {
-    recentIDs
   }
 
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
@@ -265,10 +294,6 @@ private actor SequencedCleanupLibraryService: CleanupLibraryServing {
 
   func fetchLibraryTracks() async throws -> [LibraryTrack] {
     tracks
-  }
-
-  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String> {
-    []
   }
 
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult {

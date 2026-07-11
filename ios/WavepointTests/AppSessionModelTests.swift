@@ -67,11 +67,13 @@ final class AppSessionModelTests: XCTestCase {
       signInDelay: .milliseconds(50)
     )
     let tokenStore = InMemorySpotifyTokenStore()
+    let analytics = RecordingAnalytics()
     let model = AppSessionModel(
       authenticator: authenticator,
       tokenStore: tokenStore,
       accountDeleter: FakeAccountDeletionService(),
       eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
+      analytics: analytics,
       initialState: .signedOut
     )
 
@@ -84,6 +86,10 @@ final class AppSessionModelTests: XCTestCase {
     await task.value
     XCTAssertEqual(model.state, .signedIn)
     XCTAssertEqual(tokenStore.tokens, tokens)
+    XCTAssertEqual(
+      analytics.events,
+      [.providerConnectionStarted(.spotify), .providerConnectionSucceeded(.spotify)]
+    )
   }
 
   func testSignInWithoutProviderAccessTokenShowsRecoverableError() async {
@@ -194,6 +200,7 @@ final class AppSessionModelTests: XCTestCase {
     let authenticator = FakeSpotifyAuthenticator()
     let deletionService = FakeAccountDeletionService(delay: .milliseconds(40))
     let tokenStore = InMemorySpotifyTokenStore()
+    let analytics = RecordingAnalytics()
     try tokenStore.save(
       SpotifyProviderTokens(accessToken: "access", refreshToken: "refresh")
     )
@@ -202,6 +209,7 @@ final class AppSessionModelTests: XCTestCase {
       tokenStore: tokenStore,
       accountDeleter: deletionService,
       eligibilityChecker: FakeSpotifyEligibilityChecker(result: .premium),
+      analytics: analytics,
       initialState: .signedIn
     )
 
@@ -218,6 +226,7 @@ final class AppSessionModelTests: XCTestCase {
     let clearLocalSessionCallCount = await authenticator.clearLocalSessionCallCount
     XCTAssertEqual(deletionCallCount, 1)
     XCTAssertEqual(clearLocalSessionCallCount, 1)
+    XCTAssertEqual(analytics.events, [.accountDeleted])
   }
 
   func testDeleteFailureKeepsSessionAndShowsActionableError() async throws {

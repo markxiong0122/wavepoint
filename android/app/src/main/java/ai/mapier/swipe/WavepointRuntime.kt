@@ -3,6 +3,10 @@ package ai.mapier.swipe
 import ai.mapier.swipe.account.AccountDeletionErrorKind
 import ai.mapier.swipe.account.AccountDeletionException
 import ai.mapier.swipe.account.SupabaseAccountDeletionService
+import ai.mapier.swipe.analytics.AnalyticsEvent
+import ai.mapier.swipe.analytics.AnalyticsSettings
+import ai.mapier.swipe.analytics.FirebaseCrashReporting
+import ai.mapier.swipe.analytics.PostHogAnalytics
 import ai.mapier.swipe.audio.CoroutinePreviewScheduler
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifySdkRemoteGateway
@@ -30,6 +34,12 @@ data class WavepointRuntime(
       context: Context,
       scope: CoroutineScope,
     ): WavepointRuntime {
+      val analytics = PostHogAnalytics.make(
+        context,
+        AnalyticsSettings(BuildConfig.POSTHOG_PROJECT_TOKEN, BuildConfig.POSTHOG_HOST),
+      )
+      analytics.capture(AnalyticsEvent.AppOpened)
+      val crashReporting = FirebaseCrashReporting.make(context)
       val supabase = SupabaseSpotifyAuthenticator.createClient(
         supabaseUrl = BuildConfig.SUPABASE_URL,
         publishableKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY,
@@ -73,6 +83,8 @@ data class WavepointRuntime(
           },
         ),
         scope = scope,
+        analytics = analytics,
+        crashReporting = crashReporting,
       )
       return WavepointRuntime(controller, authenticator)
     }

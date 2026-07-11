@@ -102,16 +102,6 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
     return tracks
   }
 
-  func fetchRecentlyPlayedTrackIDs() async throws -> Set<String> {
-    let url =
-      baseURL
-      .appending(path: "me/player/recently-played")
-      .appending(queryItems: [URLQueryItem(name: "limit", value: "50")])
-    let response = try await sendAuthorizedRequest(to: url)
-    let page = try decode(RecentlyPlayedPage.self, from: response.data)
-    return Set(page.items.compactMap(\.track.id))
-  }
-
   func removeFromLibrary(uris: [String]) async throws -> Int {
     guard !uris.isEmpty else { return 0 }
 
@@ -293,14 +283,6 @@ private struct SavedTrackItem: Decodable {
       addedAt: addedDate
     )
   }
-}
-
-private struct RecentlyPlayedPage: Decodable {
-  let items: [RecentlyPlayedItem]
-}
-
-private struct RecentlyPlayedItem: Decodable {
-  let track: TrackPayload
 }
 
 private struct TrackPayload: Decodable {

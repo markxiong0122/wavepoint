@@ -1,6 +1,13 @@
 package ai.mapier.swipe.ui
 
 import ai.mapier.swipe.account.AccountDeleting
+import ai.mapier.swipe.analytics.AnalyticsCapturing
+import ai.mapier.swipe.analytics.AnalyticsErrorCategory
+import ai.mapier.swipe.analytics.AnalyticsEvent
+import ai.mapier.swipe.analytics.AnalyticsProvider
+import ai.mapier.swipe.analytics.CrashReporting
+import ai.mapier.swipe.analytics.NoOpAnalytics
+import ai.mapier.swipe.analytics.NoOpCrashReporting
 import ai.mapier.swipe.audio.SpotifyAppRemotePlayer
 import ai.mapier.swipe.audio.SpotifyPlaybackState
 import ai.mapier.swipe.auth.AppSession
@@ -24,6 +31,8 @@ class WavepointController(
   private val player: SpotifyAppRemotePlayer,
   private val accountDeleting: AccountDeleting,
   private val scope: CoroutineScope,
+  private val analytics: AnalyticsCapturing = NoOpAnalytics,
+  private val crashReporting: CrashReporting = NoOpCrashReporting,
   private val deckSeed: () -> Long = { kotlin.random.Random.nextLong() },
 ) {
   private val mutableState = MutableStateFlow<WavepointUiState>(WavepointUiState.Restoring)
@@ -52,6 +61,7 @@ class WavepointController(
 
   fun startSignIn() {
     scope.launch {
+      analytics.capture(AnalyticsEvent.ProviderConnectionStarted(AnalyticsProvider.SPOTIFY))
       appSession.startSignIn()
       routeSession()
     }
@@ -66,6 +76,13 @@ class WavepointController(
 
   fun rejectAuth(error: Throwable) {
     scope.launch {
+      analytics.capture(
+        AnalyticsEvent.ProviderConnectionFailed(
+          AnalyticsProvider.SPOTIFY,
+          AnalyticsErrorCategory.AUTHORIZATION,
+        ),
+      )
+      crashReporting.record(AnalyticsErrorCategory.AUTHORIZATION)
       appSession.reject(error)
       routeSessionWithoutLoading()
     }
@@ -104,8 +121,10 @@ class WavepointController(
       try {
         accountDeleting.deleteAccount()
         appSession.clearAfterAccountDeletion()
+        analytics.capture(AnalyticsEvent.AccountDeleted)
         routeSession()
       } catch (error: Throwable) {
+        crashReporting.record(AnalyticsErrorCategory.UNKNOWN)
         mutableState.value = WavepointUiState.Error(
           message = error.message ?: "Your Wavepoint account was not deleted.",
           canReturnToReview = false,
@@ -116,14 +135,18 @@ class WavepointController(
 
   fun removeCurrent() {
     scope.launch {
+      val firstDecision = cleanupSession.completedCount == 0
       cleanupSession.tossCurrent()
+      captureDecisionTransition(firstDecision)
       presentCleanup()
     }
   }
 
   fun keepCurrent() {
     scope.launch {
+      val firstDecision = cleanupSession.completedCount == 0
       cleanupSession.keepCurrent()
+      captureDecisionTransition(firstDecision)
       presentCleanup()
     }
   }
@@ -138,6 +161,9 @@ class WavepointController(
   fun beginReview() {
     scope.launch {
       cleanupSession.beginReview()
+      if (cleanupSession.state == CleanupSessionState.REVIEWING) {
+        analytics.capture(AnalyticsEvent.ReviewOpened(AnalyticsProvider.SPOTIFY))
+      }
       presentCleanup()
     }
   }
@@ -157,8 +183,10 @@ class WavepointController(
       try {
         val removed = library.removeFromLibrary(uris)
         cleanupSession.finishCommit(removed)
+        analytics.capture(AnalyticsEvent.CleanupSessionCompleted(AnalyticsProvider.SPOTIFY))
         presentCleanup()
       } catch (error: Throwable) {
+        crashReporting.record(AnalyticsErrorCategory.COMMIT)
         cleanupSession.failCommit()
         mutableState.value = WavepointUiState.Error(
           message = error.message ?: "Spotify could not complete the removal.",
@@ -206,7 +234,10 @@ class WavepointController(
 
   private suspend fun routeSession() {
     when (appSession.state) {
-      AppSessionState.SIGNED_IN -> loadLibrary()
+      AppSessionState.SIGNED_IN -> {
+        analytics.capture(AnalyticsEvent.ProviderConnectionSucceeded(AnalyticsProvider.SPOTIFY))
+        loadLibrary()
+      }
       else -> routeSessionWithoutLoading()
     }
   }
@@ -234,10 +265,11 @@ class WavepointController(
     mutableState.value = WavepointUiState.LoadingLibrary
     try {
       val tracks = library.fetchSavedTracks()
-      val recent = library.fetchRecentlyPlayedTrackIds()
-      cleanupSession.load(deckBuilder.build(tracks, recent, seed = deckSeed()))
+      cleanupSession.load(deckBuilder.build(tracks, seed = deckSeed()))
+      analytics.capture(AnalyticsEvent.CleanupDeckLoaded(AnalyticsProvider.SPOTIFY))
       presentCleanup()
     } catch (error: Throwable) {
+      crashReporting.record(AnalyticsErrorCategory.LIBRARY_LOAD)
       mutableState.value = WavepointUiState.Error(
         message = error.message ?: "Spotify could not load your Liked Songs.",
         canReturnToReview = false,
@@ -279,5 +311,18 @@ class WavepointController(
       playbackState = player.state,
       playbackError = player.errorMessage,
     )
+  }
+
+  private fun captureDecisionTransition(firstDecision: Boolean) {
+    if (firstDecision) {
+      analytics.capture(AnalyticsEvent.FirstDecisionCompleted(AnalyticsProvider.SPOTIFY))
+    }
+    when (cleanupSession.state) {
+      CleanupSessionState.REVIEWING ->
+        analytics.capture(AnalyticsEvent.ReviewOpened(AnalyticsProvider.SPOTIFY))
+      CleanupSessionState.COMPLETE ->
+        analytics.capture(AnalyticsEvent.CleanupSessionCompleted(AnalyticsProvider.SPOTIFY))
+      else -> Unit
+    }
   }
 }

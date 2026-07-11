@@ -12,6 +12,12 @@ packages:
   SpotifyiOS:
     url: https://github.com/spotify/ios-sdk.git
     exactVersion: 5.0.1
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios.git
+    exactVersion: 3.64.5
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk.git
+    exactVersion: 12.16.0
 
 settings:
   base:
@@ -39,6 +45,8 @@ targets:
             CFBundleURLSchemes:
               - ai.mapier.swipe
         OAUTH_CALLBACK_URL: $(OAUTH_CALLBACK_URL)
+        POSTHOG_HOST: $(POSTHOG_HOST)
+        POSTHOG_PROJECT_TOKEN: $(POSTHOG_PROJECT_TOKEN)
         NSAppleMusicUsageDescription: Wavepoint uses your Apple Music library to play cleanup samples and create a Dumpster playlist for songs you choose to review.
         SUPABASE_PUBLISHABLE_KEY: $(SUPABASE_PUBLISHABLE_KEY)
         SUPABASE_URL: $(SUPABASE_URL)
@@ -52,6 +60,7 @@ targets:
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        OTHER_LDFLAGS: $(inherited) -ObjC
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: HV58968J2R
         CURRENT_PROJECT_VERSION: 6
@@ -63,6 +72,19 @@ targets:
         product: Supabase
       - package: SpotifyiOS
         product: SpotifyiOS
+      - package: PostHog
+        product: PostHog
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseCrashlytics
+    postBuildScripts:
+      - name: Upload Crashlytics Symbols
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ -f "${PROJECT_DIR}/Wavepoint/Resources/GoogleService-Info.plist" ]; then
+            "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
+          fi
 
   WavepointTests:
     type: bundle.unit-test
