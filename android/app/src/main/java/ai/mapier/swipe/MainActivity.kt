@@ -85,6 +85,8 @@ class MainActivity : ComponentActivity() {
     onStartAgain = runtime.controller::startAgain,
     onSignOut = runtime.controller::signOut,
     onDeleteAccount = runtime.controller::deleteAccount,
+    onPrivacy = { openUri("https://markxiong0122.github.io/wavepoint/privacy.html") },
+    onSupport = { openUri("https://markxiong0122.github.io/wavepoint/support.html") },
   )
 
   private fun handleSpotifyCallback(intent: Intent): Boolean {

@@ -3,7 +3,7 @@
 ## Listing
 
 - **Name:** Wavepoint
-- **Subtitle:** Clean up your Liked Songs
+- **Subtitle:** Swipe through your music
 - **Primary category:** Music
 - **Secondary category:** Utilities
 - **Bundle ID:** `ai.mapier.swipe`
@@ -11,34 +11,34 @@
 - **Version:** `0.1.0`
 - **Copyright:** 2026 Mapier Labs Inc.
 - **Privacy policy:** `https://markxiong0122.github.io/wavepoint/privacy.html`
-- **Support:** `https://github.com/markxiong0122/wavepoint/issues`
+- **Support:** `https://markxiong0122.github.io/wavepoint/support.html`
 
 ## Promotional text
 
-Finally clear the songs buried in your Spotify Liked Songs—fast, safely, and one swipe at a time.
+Finally deal with the songs buried in your Spotify or Apple Music library—fast, safely, and one swipe at a time.
 
 ## Description
 
-Wavepoint turns an overloaded Spotify library into a quick cleanup session.
+Wavepoint turns an overloaded music library into a quick cleanup session. Connect Spotify or choose Apple Music, then work through one focused deck instead of scrolling an endless list.
 
-Hear a 15-second segment, see when a track was saved, and make one simple decision: keep it or stage it for removal. After the deck loads, Wavepoint may open Spotify automatically with the first cleanup track. It then plays each following card through the active Spotify connection. Old songs and tracks outside your recent rotation are more likely to surface, so the forgotten corners of your library get attention first.
+Hear a 15-second segment, see when a track was saved, and make one simple decision: keep it or stage it for cleanup. Older saved songs receive more weight so the forgotten corners of your library get attention first.
 
-Nothing is removed while you swipe. Wavepoint keeps every removal staged on your iPhone until you review the exact list and confirm the batch.
+Nothing changes while you swipe. Wavepoint keeps every removal staged on your iPhone until you review the exact list and confirm the batch. Spotify can remove the confirmed songs directly. Apple Music places them in a private **Wavepoint Dumpster** playlist so you can delete them from your library in Music; Apple does not allow Wavepoint to perform that final deletion.
 
 Features:
 
-- Weighted cleanup decks from your Spotify Liked Songs
+- Weighted cleanup decks from Spotify Liked Songs or your Apple Music library
 - Fast swipe, button, and undo controls
-- Automatic 15-second listening segments through Spotify App Remote
-- Safe removal review before Spotify changes
+- Automatic listening segments through Spotify or Apple Music
+- Safe review before Spotify changes or an Apple Music Dumpster update
 - Secure Spotify tokens in iOS Keychain
-- No ads, tracking, or analytics
+- Anonymous, music-data-free reliability analytics
 
-Spotify account required. The Spotify iOS app must be installed for App Remote playback. Spotify playback eligibility and preview availability are determined by Spotify.
+Spotify requires an eligible account and the Spotify iOS app for App Remote playback. Apple Music requires Media & Apple Music permission, Sync Library, and an active subscription. Playback and catalog availability are determined by the selected provider.
 
 ## Keywords
 
-`spotify,liked songs,music,cleaner,library,swipe,playlist,organize`
+`spotify,apple music,liked songs,music,cleaner,library,swipe,organize`
 
 ## Review notes
 
@@ -53,11 +53,13 @@ To exercise the destructive flow safely:
 5. The review screen confirms that no change has happened yet.
 6. Confirm the deliberately small removal batch.
 
-The app requests `user-library-read`, `user-library-modify`, `user-read-recently-played`, and `user-read-email`. It does not collect analytics or upload the user's library to a Wavepoint database.
+The app requests `user-library-read`, `user-library-modify`, `user-read-private`, `user-read-email`, and `app-remote-control`. It does not request recent-listening access or upload the user's library to Wavepoint, PostHog, or Firebase.
 
 It also requests `app-remote-control`. After the cleanup deck loads, Wavepoint automatically asks Spotify to play the first selected track. Spotify may open once to authorize or wake playback, then returns to the matching Wavepoint card. Later cards start automatically while the App Remote connection is active. If setup fails, the reviewer can retry or continue with explicit preview controls.
 
 Account deletion is available under **Account → Delete Account** and requires a second destructive confirmation. It deletes the Supabase Auth user and local Wavepoint credentials. It does not delete the Spotify account or songs. Use only a disposable review account when testing deletion.
+
+Apple Music does not create a Wavepoint server account. A reviewer can choose Apple Music from the provider picker, grant access, stage songs, and confirm the batch. Wavepoint creates or updates **Wavepoint Dumpster 🗑️**; the review screen and completion screen explain that each song must still be deleted from the library inside Music.
 
 ## App privacy answers
 
@@ -66,11 +68,14 @@ Account deletion is available under **Account → Delete Account** and requires 
 - **Contact Info → Email Address:** Collected, linked to the user, App Functionality.
 - **Identifiers → User ID:** Collected, linked to the user, App Functionality. This includes Supabase and Spotify account identifiers.
 - **User Content → Photos or Videos:** Collected, linked to the user, App Functionality. Supabase Auth may retain the Spotify profile image URL supplied as provider metadata; Wavepoint does not display or otherwise use it.
+- **Identifiers → Device ID:** Collected, not linked to the user, Analytics. PostHog and Crashlytics use random installation identifiers.
+- **Usage Data → Product Interaction:** Collected, not linked to the user, Analytics. Only generic Wavepoint funnel events are recorded.
+- **Diagnostics → Crash Data:** Collected, not linked to the user, Analytics. Crashlytics receives crash traces and relevant device/app state.
 - **Tracking:** No.
-- **Advertising, marketing, analytics, or data brokerage:** No.
+- **Advertising, marketing, or data brokerage:** No.
 - **Privacy Choices URL:** `https://markxiong0122.github.io/wavepoint/privacy.html`
 
-Spotify library contents, recent listening history, cleanup decisions, and playback state are processed for the requested feature but are not retained on Wavepoint servers. Spotify credentials are retained in the iOS Keychain, not in a Wavepoint database.
+Music library contents, cleanup decisions, and playback state are processed for the requested feature but are not retained on Wavepoint servers or included in analytics. Spotify credentials are retained in the iOS Keychain, not in product analytics.
 
 ## Screenshots
 

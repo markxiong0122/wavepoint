@@ -1,46 +1,48 @@
 # Wavepoint Privacy Policy
 
-Effective date: July 9, 2026
+Effective date: July 10, 2026
 
-Wavepoint is an iPhone utility that helps you review and remove tracks from your Spotify Liked Songs library.
+Wavepoint helps you review buried songs in Spotify or Apple Music and safely stage cleanup choices before anything changes.
 
-## Data Wavepoint accesses
+## Music data
 
-When you choose Continue with Spotify, Spotify asks you to authorize access to your account. Wavepoint requests permission to read your saved music and recent listening history, remove items from your library only after you confirm a removal batch, and control Spotify playback during an active cleanup session. After login and library loading, Wavepoint may open Spotify automatically with the first cleanup track, then play 15-second segments as each new card appears.
+For Spotify, Wavepoint requests access to read saved music, remove items only after you confirm a batch, read the account subscription status, and control playback during cleanup. Spotify access and refresh tokens are stored in the device's secure credential storage. Supabase Auth retains a Wavepoint authentication record and Spotify-provided identity metadata used for login and account security.
 
-Wavepoint receives Spotify access and refresh tokens needed to make those requests. Tokens are stored in the iOS Keychain on your device. Your cleanup decisions remain on your device and are not uploaded to a Wavepoint database.
+For Apple Music, MusicKit reads the library and plays songs on the device. Confirmed choices create or update `Wavepoint Dumpster 🗑️` in the user's Apple Music account; Wavepoint cannot directly delete songs from the Apple Music library. Apple Music library data is not sent to Wavepoint's Supabase backend.
 
-Supabase Auth stores a Wavepoint authentication record so you can remain signed in. That record includes a Supabase user ID and Spotify-provided account metadata such as your Spotify account ID, email address, display name, and profile image URL when Spotify supplies them. Wavepoint uses this information only for authentication and account security.
+Wavepoint does not upload track names, track identifiers, artists, artwork, listening history, library size, playback history, saved dates, or individual Keep/Remove choices to product analytics or crash reporting services.
 
-## Data collection and tracking
+## Product analytics and diagnostics
 
-Wavepoint does not sell personal data, use advertising SDKs, track you across apps or websites, or collect product analytics in this version. Wavepoint does not store your Spotify library, listening history, cleanup decisions, or playback history in a Wavepoint database.
+Wavepoint uses PostHog for anonymous product analytics. It records a small set of Wavepoint flow events such as opening the app, connecting a music service, loading the cleanup deck, making a first decision, opening review, and completing or abandoning a session. Event properties are limited to the provider family and a coarse error category. PostHog receives an anonymous installation identifier and standard app/device information needed to provide analytics. Wavepoint does not identify PostHog users with a name, email, Spotify ID, Supabase ID, or Apple Music account.
 
-Spotify and Supabase process authentication and API requests under their own terms and privacy policies. Their infrastructure may process standard request information such as IP address and request time for security and service operation. Album artwork and available audio preview clips are loaded from Spotify-provided URLs. Spotify may open automatically to authorize or play the first selected cleanup track; later tracks play through the active App Remote connection while it remains available.
+Wavepoint uses Firebase Crashlytics for stability monitoring. Crashlytics may collect crash stack traces, relevant application state, app version, device and operating-system information, and random installation/session identifiers. Developer-recorded non-fatal incidents contain only a fixed category such as authorization, eligibility, library loading, playback, or commit. Google states that Crashlytics crash data and associated identifiers are retained for 90 days before removal begins.
 
-## Library changes
+Wavepoint does not use advertising SDKs, sell personal data, or track people across other companies' apps or websites. PostHog session replay, UI autocapture, person profiles, surveys, and feature flags are disabled. Firebase Analytics is not included.
 
-Swiping a song does not immediately change your Spotify library. Songs marked for removal are staged on your device. Wavepoint sends a removal request to Spotify only after you review the staged list and confirm the exact batch count.
+## Service operation
+
+Spotify, Apple, Supabase, PostHog, and Google process data under their own terms and privacy policies. Their infrastructure may process standard network information, including IP address and request time. Wavepoint's Supabase Edge Functions log only a random request ID, function name, and response status. Authorization headers, provider tokens, user IDs, request bodies, and music data are not written to Wavepoint's operational logs.
+
+## Library safety
+
+Swiping never immediately changes a library. Spotify removals are staged locally and sent only after the user reviews and confirms the batch. Apple Music choices are staged locally and then added to the Dumpster playlist after confirmation; the user completes any library deletion in Music.
 
 ## Retention and deletion
 
-Supabase retains your Wavepoint authentication record until you delete the account. Wavepoint retains Spotify authorization tokens in the iOS Keychain so you can remain signed in.
+Supabase retains a Spotify user's Wavepoint authentication record until the user deletes the account. Spotify credentials remain in secure local storage until sign-out or account deletion. Apple Music does not create a Wavepoint server account.
 
 In the app, open **Account**:
 
-- **Sign Out** clears Wavepoint's locally stored Spotify tokens and signs out of Supabase.
-- **Delete Account** permanently deletes your Supabase authentication record and clears Wavepoint's local Spotify credentials after a second confirmation.
+- **Sign Out** clears locally stored Spotify credentials and signs out of Supabase.
+- **Delete Account** permanently deletes the Supabase authentication record and clears local Spotify credentials after a second confirmation.
 
-Deleting your Wavepoint account does not delete your Spotify account or songs, and it does not automatically revoke Spotify's authorization grant. You can separately revoke Wavepoint from your Spotify account's Apps page. Because iOS Keychain items can outlive an app installation, use Sign Out or Delete Account before uninstalling if you want credentials cleared immediately.
+Deleting a Wavepoint account does not delete the Spotify account or songs and does not automatically revoke Spotify's authorization grant. The grant can be revoked separately from Spotify's Apps page. Analytics and diagnostics are retained according to the applicable PostHog project settings and Crashlytics retention described above. Privacy deletion requests can be submitted through Wavepoint Support.
 
 ## Children
 
 Wavepoint is not directed to children and does not knowingly collect personal information from children.
 
-## Changes
-
-If Wavepoint's data practices change, this policy will be updated before the changed version is released.
-
 ## Contact
 
-For privacy or support questions, open an issue at <https://github.com/markxiong0122/wavepoint/issues>.
+For privacy or support questions, visit <https://markxiong0122.github.io/wavepoint/support.html>.

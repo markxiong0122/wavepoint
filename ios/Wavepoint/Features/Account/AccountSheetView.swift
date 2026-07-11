@@ -17,6 +17,12 @@ struct AccountProviderPresentation: Equatable, Sendable {
   }
 
   var showsAccountDeletion: Bool { provider == .spotify }
+  var privacyURL: URL {
+    URL(string: "https://markxiong0122.github.io/wavepoint/privacy.html")!
+  }
+  var supportURL: URL {
+    URL(string: "https://markxiong0122.github.io/wavepoint/support.html")!
+  }
 }
 
 struct AccountSheetView: View {
@@ -49,6 +55,13 @@ struct AccountSheetView: View {
       Text(presentation.privacyCopy)
         .font(.system(size: 14, weight: .medium, design: .rounded))
         .foregroundStyle(WavepointTheme.paper.opacity(0.78))
+
+      HStack(spacing: 18) {
+        Link("PRIVACY POLICY", destination: presentation.privacyURL)
+        Link("SUPPORT", destination: presentation.supportURL)
+      }
+      .font(.system(size: 10, weight: .bold, design: .monospaced))
+      .foregroundStyle(WavepointTheme.keep)
 
       if provider == .spotify {
         Button {

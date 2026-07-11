@@ -75,6 +75,8 @@ data class WavepointActions(
   val onSignOut: () -> Unit = {},
   val onDeleteAccount: () -> Unit = {},
   val onAccount: () -> Unit = {},
+  val onPrivacy: () -> Unit = {},
+  val onSupport: () -> Unit = {},
 )
 
 @Composable
@@ -135,6 +137,8 @@ fun WavepointApp(
         showsAccount = false
         actions.onDeleteAccount()
       },
+      onPrivacy = actions.onPrivacy,
+      onSupport = actions.onSupport,
     )
   }
 }

@@ -27,4 +27,17 @@ final class MusicProviderPickerTests: XCTestCase {
     XCTAssertTrue(AccountProviderPresentation(provider: .spotify).showsAccountDeletion)
     XCTAssertFalse(AccountProviderPresentation(provider: .appleMusic).showsAccountDeletion)
   }
+
+  func testAccountProvidesPublicPrivacyAndSupportDestinations() {
+    let presentation = AccountProviderPresentation(provider: .spotify)
+
+    XCTAssertEqual(
+      presentation.privacyURL.absoluteString,
+      "https://markxiong0122.github.io/wavepoint/privacy.html"
+    )
+    XCTAssertEqual(
+      presentation.supportURL.absoluteString,
+      "https://markxiong0122.github.io/wavepoint/support.html"
+    )
+  }
 }

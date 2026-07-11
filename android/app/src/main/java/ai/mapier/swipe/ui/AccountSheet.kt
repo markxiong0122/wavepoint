@@ -38,6 +38,8 @@ fun AccountSheet(
   onDismiss: () -> Unit,
   onSignOut: () -> Unit,
   onDeleteAccount: () -> Unit,
+  onPrivacy: () -> Unit,
+  onSupport: () -> Unit,
 ) {
   var confirmsDeletion by remember { mutableStateOf(false) }
 
@@ -81,6 +83,24 @@ fun AccountSheet(
         fontSize = 14.sp,
         lineHeight = 20.sp,
       )
+      Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+        Text(
+          "PRIVACY POLICY",
+          modifier = Modifier.clickable(onClick = onPrivacy).padding(vertical = 10.dp),
+          color = WavepointPalette.Keep,
+          fontFamily = FontFamily.Monospace,
+          fontWeight = FontWeight.Bold,
+          fontSize = 10.sp,
+        )
+        Text(
+          "SUPPORT",
+          modifier = Modifier.clickable(onClick = onSupport).padding(vertical = 10.dp),
+          color = WavepointPalette.Keep,
+          fontFamily = FontFamily.Monospace,
+          fontWeight = FontWeight.Bold,
+          fontSize = 10.sp,
+        )
+      }
       WavepointActionButton(
         label = "SIGN OUT",
         color = WavepointPalette.Paper,

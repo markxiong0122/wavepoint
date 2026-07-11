@@ -22,3 +22,5 @@ Verify a file before upload with:
 ```sh
 shasum -a 256 -c SHA256SUMS
 ```
+
+Public releases must also complete [`docs/release-checklist.md`](../docs/release-checklist.md). Monitoring procedures and stop-ship gates live in [`docs/release-operations.md`](../docs/release-operations.md).
