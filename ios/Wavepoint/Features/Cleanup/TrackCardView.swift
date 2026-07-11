@@ -5,7 +5,6 @@ struct TrackCardView: View {
   let position: Int
   let total: Int
   let previewPlayer: TrackPreviewPlayer
-  let showsSpotifyConnectionHint: Bool
   let onRemove: () -> Void
   let onKeep: () -> Void
 
@@ -15,20 +14,35 @@ struct TrackCardView: View {
 
   var body: some View {
     GeometryReader { proxy in
-      card
+      let layout = CleanupCardLayout(
+        availableSize: proxy.size,
+        detailHeight: 260,
+        shadowDepth: 7
+      )
+
+      card(
+        artworkHeight: layout.artworkHeight,
+        detailHeight: layout.cardHeight - layout.artworkHeight
+      )
+        .frame(height: layout.cardHeight, alignment: .top)
         .overlay(alignment: dragOffset.width < 0 ? .topTrailing : .topLeading) {
           decisionStamp
         }
         .offset(dragOffset)
         .rotationEffect(.degrees(reduceMotion ? 0 : rotation(in: proxy.size.width)))
         .gesture(dragGesture(cardWidth: proxy.size.width))
+        .padding(.bottom, layout.bottomClearance)
     }
-    .frame(maxHeight: .infinity)
+    .frame(maxHeight: .infinity, alignment: .top)
   }
 
-  private var card: some View {
+  private func card(
+    artworkHeight: CGFloat,
+    detailHeight: CGFloat
+  ) -> some View {
     VStack(alignment: .leading, spacing: 0) {
       artwork
+        .frame(height: artworkHeight)
 
       VStack(alignment: .leading, spacing: 10) {
         HStack {
@@ -42,7 +56,7 @@ struct TrackCardView: View {
         Text(track.title)
           .font(.system(size: 29, weight: .black, design: .rounded))
           .tracking(-1.1)
-          .lineLimit(2)
+          .lineLimit(2, reservesSpace: true)
           .minimumScaleFactor(0.78)
 
         Text(track.artistLine)
@@ -52,19 +66,11 @@ struct TrackCardView: View {
 
         previewControl
 
-        if showsSpotifyConnectionHint,
-          previewPlayer.source == .spotifyRemote,
-          previewPlayer.state == .ready
-        {
-          Text("Spotify may open once to connect.")
-            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-            .foregroundStyle(WavepointTheme.mutedInk)
-        }
-
         if let errorMessage = previewPlayer.errorMessage {
           Text(errorMessage)
             .font(.system(size: 10, weight: .semibold, design: .rounded))
             .foregroundStyle(WavepointTheme.remove)
+            .lineLimit(1)
         }
 
         if let destinationURL = track.destinationURL {
@@ -78,6 +84,8 @@ struct TrackCardView: View {
         }
       }
       .padding(16)
+      .frame(height: detailHeight, alignment: .top)
+      .clipped()
     }
     .background(WavepointTheme.raisedPaper)
     .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.cardRadius))

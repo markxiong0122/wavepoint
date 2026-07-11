@@ -217,7 +217,6 @@ struct CleanupHomeView: View {
           position: model.completedCount + 1,
           total: model.totalCount,
           previewPlayer: playback.player,
-          showsSpotifyConnectionHint: playback.state == .manual,
           onRemove: model.removeCurrentTrack,
           onKeep: model.keepCurrentTrack
         )
