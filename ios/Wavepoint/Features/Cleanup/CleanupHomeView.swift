@@ -103,7 +103,7 @@ struct CleanupHomeView: View {
       case .complete(let summary):
         CleanupCompleteView(
           summary: summary,
-          onStartAgain: { Task { await model.load() } },
+          onStartAgain: { Task { await startAgain() } },
           onSignOut: onSignOut
         )
       case .failed(let message):
@@ -416,5 +416,10 @@ struct CleanupHomeView: View {
     if case .complete = model.state {
       haptics.play(.success)
     }
+  }
+
+  private func startAgain() async {
+    await playback.resetForNewDeck()
+    await model.load()
   }
 }

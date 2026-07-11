@@ -232,6 +232,29 @@ final class CleanupSessionModelTests: XCTestCase {
     XCTAssertTrue(message.contains("too many requests"))
   }
 
+  func testFailedNewBatchDoesNotRestoreTheCompletedReviewBatch() async {
+    let oldTrack = track(id: "old", addedAt: .distantPast)
+    let service = ReloadingCleanupLibraryService(results: [
+      .success([oldTrack]),
+      .failure(SpotifyWebAPIError.rateLimited),
+    ])
+    let model = CleanupSessionModel(service: service)
+
+    await model.load()
+    model.removeCurrentTrack()
+    await model.confirmRemovals()
+    await model.load()
+    model.returnToReview()
+
+    guard case .failed = model.state else {
+      return XCTFail("Expected the new batch load to remain failed")
+    }
+    XCTAssertTrue(model.decisions.isEmpty)
+    XCTAssertTrue(model.stagedRemovals.isEmpty)
+    XCTAssertEqual(model.totalCount, 0)
+    XCTAssertFalse(model.requiresProviderChangeConfirmation)
+  }
+
   private func track(id: String, addedAt: Date) -> LibraryTrack {
     LibraryTrack(
       id: id,
@@ -302,5 +325,22 @@ private actor SequencedCleanupLibraryService: CleanupLibraryServing {
       throw CleanupCommitError.partial(committedCount: 1, remainingCount: 1)
     }
     return .removed(count: trackIDs.count)
+  }
+}
+
+private actor ReloadingCleanupLibraryService: CleanupLibraryServing {
+  nonisolated let provider = MusicProvider.spotify
+  private var results: [Result<[LibraryTrack], Error>]
+
+  init(results: [Result<[LibraryTrack], Error>]) {
+    self.results = results
+  }
+
+  func fetchLibraryTracks() async throws -> [LibraryTrack] {
+    try results.removeFirst().get()
+  }
+
+  func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
+    .removed(count: trackIDs.count)
   }
 }

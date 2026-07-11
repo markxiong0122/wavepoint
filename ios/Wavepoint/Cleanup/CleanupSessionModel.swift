@@ -79,14 +79,15 @@ final class CleanupSessionModel {
 
   func load() async {
     state = .loading
+    deck = []
+    decisions = []
+    committedTrackIDs = []
+    alreadyCommittedCount = 0
 
     do {
       deck = try await deckBuilder.build(
         from: service.fetchLibraryTracks()
       )
-      decisions = []
-      committedTrackIDs = []
-      alreadyCommittedCount = 0
       analytics.capture(.cleanupDeckLoaded(AnalyticsProvider(provider)))
       state =
         deck.isEmpty

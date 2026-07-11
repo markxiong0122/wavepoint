@@ -74,6 +74,15 @@ final class CleanupPlaybackCoordinator {
     }
   }
 
+  func resetForNewDeck() async {
+    presentationGeneration += 1
+    await player.stop()
+    currentTrackID = nil
+    hasStartedDeck = false
+    prefersManualPlayback = false
+    state = .idle
+  }
+
   private func prepareManually(
     _ track: LibraryTrack,
     generation: Int

@@ -188,6 +188,36 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
     XCTAssertEqual(remote.events, [.play("spotify:track:first")])
   }
 
+  func testNewDeckResetsManualPreferenceAndRetriesAutoplay() async {
+    let remote = RecordingCleanupRemotePlayer(
+      error: CleanupRemoteTestError.failed,
+      playFailureCount: 1
+    )
+    let player = TrackPreviewPlayer(
+      engine: RecordingCleanupPreviewEngine(),
+      remote: remote,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    let coordinator = CleanupPlaybackCoordinator(player: player)
+    let first = spotifyTrack(
+      id: "first",
+      previewURL: URL(string: "https://audio.example/first.mp3")!
+    )
+
+    await coordinator.present(first)
+    await coordinator.continueManually(with: first)
+    await coordinator.resetForNewDeck()
+    await coordinator.present(spotifyTrack(id: "second"))
+
+    XCTAssertEqual(coordinator.state, .automatic)
+    XCTAssertEqual(player.source, .spotifyRemote)
+    XCTAssertEqual(
+      remote.events,
+      [.play("spotify:track:first"), .play("spotify:track:second")]
+    )
+    await coordinator.stop()
+  }
+
   func testStoppingThenPresentingSameTrackResumesWithoutDoublePause() async {
     let remote = RecordingCleanupRemotePlayer()
     let player = TrackPreviewPlayer(
