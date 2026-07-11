@@ -62,13 +62,15 @@ struct CleanupHomeView: View {
   let onSignOut: () -> Void
   let onDeleteAccount: () -> Void
   let onChangeProvider: () -> Void
+  private let haptics: CleanupHaptics
 
   init(
     model: CleanupSessionModel,
     remotePlayback: any RemoteTrackPlaying,
     onSignOut: @escaping () -> Void,
     onDeleteAccount: @escaping () -> Void,
-    onChangeProvider: @escaping () -> Void
+    onChangeProvider: @escaping () -> Void,
+    haptics: CleanupHaptics = .live
   ) {
     _model = State(initialValue: model)
     _playback = State(
@@ -79,6 +81,7 @@ struct CleanupHomeView: View {
     self.onSignOut = onSignOut
     self.onDeleteAccount = onDeleteAccount
     self.onChangeProvider = onChangeProvider
+    self.haptics = haptics
   }
 
   var body: some View {
@@ -93,7 +96,7 @@ struct CleanupHomeView: View {
           tracks: model.stagedRemovals,
           presentation: model.presentation,
           onCancel: model.cancelReview,
-          onConfirm: { Task { await model.confirmRemovals() } }
+          onConfirm: { Task { await confirmRemovals() } }
         )
       case .committing:
         committingView
@@ -217,8 +220,9 @@ struct CleanupHomeView: View {
           position: model.completedCount + 1,
           total: model.totalCount,
           previewPlayer: playback.player,
-          onRemove: model.removeCurrentTrack,
-          onKeep: model.keepCurrentTrack
+          onDecisionThresholdCrossed: { haptics.play(.threshold) },
+          onRemove: removeCurrentTrack,
+          onKeep: keepCurrentTrack
         )
         .id(track.id)
         .transition(.opacity.combined(with: .offset(y: 12)))
@@ -257,10 +261,10 @@ struct CleanupHomeView: View {
       decisionButton(
         title: model.presentation.destructiveActionLabel,
         color: WavepointTheme.remove,
-        action: model.removeCurrentTrack
+        action: removeCurrentTrack
       )
 
-      Button(action: model.undo) {
+      Button(action: undoDecision) {
         Image(systemName: "arrow.uturn.backward")
           .font(.system(size: 17, weight: .black))
           .frame(width: 52, height: 52)
@@ -276,7 +280,7 @@ struct CleanupHomeView: View {
       decisionButton(
         title: "✓ KEEP",
         color: WavepointTheme.keep,
-        action: model.keepCurrentTrack
+        action: keepCurrentTrack
       )
     }
   }
@@ -389,6 +393,28 @@ struct CleanupHomeView: View {
       isConfirmingProviderChange = true
     } else {
       onChangeProvider()
+    }
+  }
+
+  private func removeCurrentTrack() {
+    haptics.play(.decision)
+    model.removeCurrentTrack()
+  }
+
+  private func keepCurrentTrack() {
+    haptics.play(.decision)
+    model.keepCurrentTrack()
+  }
+
+  private func undoDecision() {
+    haptics.play(.undo)
+    model.undo()
+  }
+
+  private func confirmRemovals() async {
+    await model.confirmRemovals()
+    if case .complete = model.state {
+      haptics.play(.success)
     }
   }
 }

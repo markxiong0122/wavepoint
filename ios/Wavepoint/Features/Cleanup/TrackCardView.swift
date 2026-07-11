@@ -5,12 +5,14 @@ struct TrackCardView: View {
   let position: Int
   let total: Int
   let previewPlayer: TrackPreviewPlayer
+  let onDecisionThresholdCrossed: () -> Void
   let onRemove: () -> Void
   let onKeep: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var dragOffset: CGSize = .zero
   @State private var isCommittingDecision = false
+  @State private var thresholdFeedback = SwipeThresholdFeedback()
 
   var body: some View {
     GeometryReader { proxy in
@@ -234,9 +236,17 @@ struct TrackCardView: View {
       .onChanged { value in
         guard !isCommittingDecision else { return }
         dragOffset = value.translation
+        let threshold = cardWidth * 0.28
+        if thresholdFeedback.update(
+          distance: value.translation.width,
+          threshold: threshold
+        ) {
+          onDecisionThresholdCrossed()
+        }
       }
       .onEnded { value in
         guard !isCommittingDecision else { return }
+        thresholdFeedback.reset()
         let threshold = cardWidth * 0.28
         guard abs(value.translation.width) >= threshold else {
           withAnimation(.interactiveSpring(response: 0.24, dampingFraction: 0.88)) {
