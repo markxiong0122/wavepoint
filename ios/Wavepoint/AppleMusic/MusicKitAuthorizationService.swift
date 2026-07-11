@@ -1,10 +1,18 @@
 import MusicKit
+import OSLog
 
 struct MusicKitAuthorizationService: AppleMusicAuthorizing {
   private let client: any MusicKitAuthorizationClient
+  private let retryDelay: @Sendable () async throws -> Void
 
-  init(client: any MusicKitAuthorizationClient = SystemMusicKitAuthorizationClient()) {
+  init(
+    client: any MusicKitAuthorizationClient = SystemMusicKitAuthorizationClient(),
+    retryDelay: @escaping @Sendable () async throws -> Void = {
+      try await Task.sleep(for: .milliseconds(300))
+    }
+  ) {
     self.client = client
+    self.retryDelay = retryDelay
   }
 
   func currentEligibility() async throws -> AppleMusicEligibility {
@@ -28,9 +36,15 @@ struct MusicKitAuthorizationService: AppleMusicAuthorizing {
     case .authorized:
       let capabilities: AppleMusicSubscriptionCapabilities
       do {
-        capabilities = try await client.fetchSubscriptionCapabilities()
+        capabilities = try await fetchSubscriptionCapabilities()
+      } catch AppleMusicAuthorizationClientError.permissionDenied {
+        return .permissionDenied
       } catch AppleMusicAuthorizationClientError.privacyAcknowledgementRequired {
         return .privacyAcknowledgementRequired
+      } catch AppleMusicAuthorizationClientError.accountNotReady {
+        return .accountNotReady
+      } catch AppleMusicAuthorizationClientError.serviceUnavailable {
+        return .serviceUnavailable
       }
       guard capabilities.canPlayCatalogContent else {
         return .subscriptionRequired
@@ -39,6 +53,17 @@ struct MusicKitAuthorizationService: AppleMusicAuthorizing {
         return .syncLibraryRequired
       }
       return .eligible
+    }
+  }
+
+  private func fetchSubscriptionCapabilities() async throws
+    -> AppleMusicSubscriptionCapabilities
+  {
+    do {
+      return try await client.fetchSubscriptionCapabilities()
+    } catch AppleMusicAuthorizationClientError.accountNotReady {
+      try await retryDelay()
+      return try await client.fetchSubscriptionCapabilities()
     }
   }
 }
@@ -59,9 +84,45 @@ struct SystemMusicKitAuthorizationClient: MusicKitAuthorizationClient {
         canPlayCatalogContent: subscription.canPlayCatalogContent,
         hasCloudLibraryEnabled: subscription.hasCloudLibraryEnabled
       )
-    } catch MusicSubscription.Error.privacyAcknowledgementRequired {
-      throw AppleMusicAuthorizationClientError.privacyAcknowledgementRequired
+    } catch {
+      let nsError = error as NSError
+      Logger(subsystem: "ai.mapier.swipe", category: "AppleMusic").error(
+        "Subscription check failed domain=\(nsError.domain, privacy: .public) code=\(nsError.code, privacy: .public)"
+      )
+      throw Self.authorizationError(from: error)
     }
+  }
+
+  static func authorizationError(
+    from error: any Error
+  ) -> AppleMusicAuthorizationClientError {
+    if let subscriptionError = error as? MusicSubscription.Error {
+      switch subscriptionError {
+      case .permissionDenied:
+        return .permissionDenied
+      case .privacyAcknowledgementRequired:
+        return .privacyAcknowledgementRequired
+      case .unknown:
+        return .accountNotReady
+      @unknown default:
+        return .accountNotReady
+      }
+    }
+    if let tokenError = error as? MusicTokenRequestError {
+      switch tokenError {
+      case .permissionDenied:
+        return .permissionDenied
+      case .privacyAcknowledgementRequired:
+        return .privacyAcknowledgementRequired
+      case .developerTokenRequestFailed:
+        return .serviceUnavailable
+      case .unknown, .userTokenRevoked, .userNotSignedIn, .userTokenRequestFailed:
+        return .accountNotReady
+      @unknown default:
+        return .accountNotReady
+      }
+    }
+    return .serviceUnavailable
   }
 
   private static func status(

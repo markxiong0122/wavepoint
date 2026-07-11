@@ -10,6 +10,8 @@ enum MusicProviderSessionState: Equatable, Sendable {
   case appleMusicPermissionDenied
   case appleMusicRestricted
   case appleMusicPrivacyAcknowledgementRequired
+  case appleMusicAccountNotReady
+  case appleMusicServiceUnavailable
   case appleMusicSubscriptionRequired
   case appleMusicSyncLibraryRequired
   case failed(String)
@@ -128,6 +130,14 @@ final class MusicProviderSessionModel {
       case .privacyAcknowledgementRequired:
         state = .appleMusicPrivacyAcknowledgementRequired
         analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))
+      case .accountNotReady:
+        state = .appleMusicAccountNotReady
+        analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))
+        crashReporting.record(.eligibility)
+      case .serviceUnavailable:
+        state = .appleMusicServiceUnavailable
+        analytics.capture(.providerConnectionFailed(.appleMusic, .configuration))
+        crashReporting.record(.configuration)
       case .subscriptionRequired:
         state = .appleMusicSubscriptionRequired
         analytics.capture(.providerConnectionFailed(.appleMusic, .eligibility))

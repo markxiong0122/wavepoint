@@ -67,6 +67,14 @@ final class AppRootScreenTests: XCTestCase {
       .appleMusicPrivacyAcknowledgementRequired
     )
     XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicAccountNotReady, spotifyState: .signedOut),
+      .appleMusicAccountNotReady
+    )
+    XCTAssertEqual(
+      AppRootScreen(providerState: .appleMusicServiceUnavailable, spotifyState: .signedOut),
+      .appleMusicServiceUnavailable
+    )
+    XCTAssertEqual(
       AppRootScreen(providerState: .appleMusicSubscriptionRequired, spotifyState: .signedOut),
       .appleMusicSubscriptionRequired
     )

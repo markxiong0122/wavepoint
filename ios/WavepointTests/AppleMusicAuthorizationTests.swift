@@ -1,3 +1,4 @@
+import MusicKit
 import XCTest
 
 @testable import Wavepoint
@@ -83,6 +84,89 @@ final class AppleMusicAuthorizationTests: XCTestCase {
     let result = try await service.currentEligibility()
 
     XCTAssertEqual(result, .privacyAcknowledgementRequired)
+  }
+
+  func testMusicKitSubscriptionErrorsMapToActionableConnectionStates() {
+    XCTAssertEqual(
+      SystemMusicKitAuthorizationClient.authorizationError(
+        from: MusicSubscription.Error.permissionDenied
+      ),
+      .permissionDenied
+    )
+    XCTAssertEqual(
+      SystemMusicKitAuthorizationClient.authorizationError(
+        from: MusicSubscription.Error.privacyAcknowledgementRequired
+      ),
+      .privacyAcknowledgementRequired
+    )
+    XCTAssertEqual(
+      SystemMusicKitAuthorizationClient.authorizationError(
+        from: MusicSubscription.Error.unknown
+      ),
+      .accountNotReady
+    )
+    XCTAssertEqual(
+      SystemMusicKitAuthorizationClient.authorizationError(
+        from: MusicTokenRequestError.developerTokenRequestFailed
+      ),
+      .serviceUnavailable
+    )
+    XCTAssertEqual(
+      SystemMusicKitAuthorizationClient.authorizationError(
+        from: MusicTokenRequestError.userNotSignedIn
+      ),
+      .accountNotReady
+    )
+  }
+
+  func testAccountNotReadyErrorMapsToRecoverableEligibility() async throws {
+    let service = MusicKitAuthorizationService(
+      client: FakeMusicKitAuthorizationClient(
+        currentStatus: .authorized,
+        requestedStatus: .authorized,
+        capabilitiesError: .accountNotReady
+      ),
+      retryDelay: {}
+    )
+
+    let result = try await service.currentEligibility()
+
+    XCTAssertEqual(result, .accountNotReady)
+  }
+
+  func testAccountReadinessGetsOneBoundedRetry() async throws {
+    let client = SequencedMusicKitAuthorizationClient(results: [
+      .failure(.accountNotReady),
+      .success(.init(canPlayCatalogContent: true, hasCloudLibraryEnabled: true)),
+    ])
+    let service = MusicKitAuthorizationService(client: client, retryDelay: {})
+
+    let result = try await service.currentEligibility()
+
+    XCTAssertEqual(result, .eligible)
+    let requestCount = await client.requestCount
+    XCTAssertEqual(requestCount, 2)
+  }
+}
+
+private actor SequencedMusicKitAuthorizationClient: MusicKitAuthorizationClient {
+  nonisolated let currentStatus = AppleMusicAuthorizationStatus.authorized
+  private var results: [Result<AppleMusicSubscriptionCapabilities, AppleMusicAuthorizationClientError>]
+  private(set) var requestCount = 0
+
+  init(
+    results: [Result<AppleMusicSubscriptionCapabilities, AppleMusicAuthorizationClientError>]
+  ) {
+    self.results = results
+  }
+
+  func requestAuthorization() async -> AppleMusicAuthorizationStatus {
+    .authorized
+  }
+
+  func fetchSubscriptionCapabilities() async throws -> AppleMusicSubscriptionCapabilities {
+    requestCount += 1
+    return try results.removeFirst().get()
   }
 }
 

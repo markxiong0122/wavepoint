@@ -13,6 +13,8 @@ enum AppRootScreen: Equatable {
   case appleMusicPermissionDenied
   case appleMusicRestricted
   case appleMusicPrivacyAcknowledgementRequired
+  case appleMusicAccountNotReady
+  case appleMusicServiceUnavailable
   case appleMusicSubscriptionRequired
   case appleMusicSyncLibraryRequired
   case error(String)
@@ -55,6 +57,10 @@ enum AppRootScreen: Equatable {
       self = .appleMusicRestricted
     case .appleMusicPrivacyAcknowledgementRequired:
       self = .appleMusicPrivacyAcknowledgementRequired
+    case .appleMusicAccountNotReady:
+      self = .appleMusicAccountNotReady
+    case .appleMusicServiceUnavailable:
+      self = .appleMusicServiceUnavailable
     case .appleMusicSubscriptionRequired:
       self = .appleMusicSubscriptionRequired
     case .appleMusicSyncLibraryRequired:
@@ -77,6 +83,8 @@ enum AppRootScreen: Equatable {
     case .appleMusicRestricted: "apple-music-restricted"
     case .appleMusicPrivacyAcknowledgementRequired:
       "apple-music-privacy-acknowledgement-required"
+    case .appleMusicAccountNotReady: "apple-music-account-not-ready"
+    case .appleMusicServiceUnavailable: "apple-music-service-unavailable"
     case .appleMusicSubscriptionRequired: "apple-music-subscription-required"
     case .appleMusicSyncLibraryRequired: "apple-music-sync-library-required"
     case .error: "auth-error"
@@ -180,6 +188,22 @@ struct AppRootView: View {
           identifier: "apple-music-privacy-acknowledgement-required",
           primaryAction: openMusic
         )
+      case .appleMusicAccountNotReady:
+        connectionBlocker(
+          eyebrow: "FINISH APPLE MUSIC SETUP",
+          message: "Open Music, dismiss any What's New, privacy, or account setup screen, and make sure a song can play. Then return to Wavepoint.",
+          primaryTitle: "OPEN MUSIC",
+          identifier: "apple-music-account-not-ready",
+          primaryAction: openMusic
+        )
+      case .appleMusicServiceUnavailable:
+        connectionBlocker(
+          eyebrow: "APPLE MUSIC CONNECTION MISSED",
+          message: "Wavepoint could not verify its Apple Music connection. Check your internet connection and try again. If this keeps happening, contact Support.",
+          primaryTitle: "TRY AGAIN",
+          identifier: "apple-music-service-unavailable",
+          primaryAction: retryAppleMusic
+        )
       case .appleMusicSubscriptionRequired:
         connectionBlocker(
           eyebrow: "APPLE MUSIC REQUIRED",
@@ -218,6 +242,7 @@ struct AppRootView: View {
       guard oldPhase != .active, newPhase == .active else { return }
       guard providerModel.state == .appleMusicPermissionDenied
         || providerModel.state == .appleMusicPrivacyAcknowledgementRequired
+        || providerModel.state == .appleMusicAccountNotReady
       else { return }
       retryAppleMusic()
     }
