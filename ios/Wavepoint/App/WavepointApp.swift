@@ -1,5 +1,13 @@
 import SwiftUI
 
+@MainActor
+struct AppleMusicAppDependencies {
+  let authorizer: any AppleMusicAuthorizing
+  let selectionStore: any MusicProviderSelectionStoring
+  let cleanupService: any CleanupLibraryServing
+  let playerClient: any AppleMusicPlayerClient
+}
+
 @main
 struct WavepointApp: App {
   private let providerModel: MusicProviderSessionModel?
@@ -12,9 +20,22 @@ struct WavepointApp: App {
 
   init() {
     do {
-      let analytics = PostHogAnalytics.make()
+      #if DEBUG && targetEnvironment(simulator)
+        let demoScenario = AppleMusicSimulatorDemo.scenario(
+          arguments: ProcessInfo.processInfo.arguments
+        )
+        let isSimulatorDemo = demoScenario != nil
+      #else
+        let isSimulatorDemo = false
+      #endif
+
+      let analytics: any AnalyticsCapturing = isSimulatorDemo
+        ? NoOpAnalytics()
+        : PostHogAnalytics.make()
       analytics.capture(.appOpened)
-      let crashReporting = FirebaseCrashReporting.make()
+      let crashReporting: any CrashReporting = isSimulatorDemo
+        ? NoOpCrashReporting()
+        : FirebaseCrashReporting.make()
       let configuration = try AppConfiguration.load()
       let tokenStore = KeychainSpotifyTokenStore()
       let supabaseClient = SupabaseSpotifyAuthenticator.makeClient(
@@ -31,9 +52,20 @@ struct WavepointApp: App {
         try await credentialProvider.accessToken(forceRefresh: forceRefresh)
       }
 
+      let appleMusicDependencies: AppleMusicAppDependencies
+      #if DEBUG && targetEnvironment(simulator)
+        if let demoScenario {
+          appleMusicDependencies = AppleMusicSimulatorDemo.dependencies(for: demoScenario)
+        } else {
+          appleMusicDependencies = Self.realAppleMusicDependencies()
+        }
+      #else
+        appleMusicDependencies = Self.realAppleMusicDependencies()
+      #endif
+
       let providerModel = MusicProviderSessionModel(
-        appleMusicAuthorizer: MusicKitAuthorizationService(),
-        selectionStore: UserDefaultsMusicProviderSelectionStore(),
+        appleMusicAuthorizer: appleMusicDependencies.authorizer,
+        selectionStore: appleMusicDependencies.selectionStore,
         analytics: analytics,
         crashReporting: crashReporting
       )
@@ -67,23 +99,13 @@ struct WavepointApp: App {
         }
       )
 
-      let songStore = MusicKitSongStore.shared
-      let dumpsterService = AppleMusicDumpsterService(
-        client: MusicKitPlaylistClient(songStore: songStore),
-        store: UserDefaultsDumpsterPlaylistStore()
-      )
-      let appleMusicService = AppleMusicLibraryService(
-        client: MusicKitLibraryClient(songStore: songStore)
-      ) { songIDs in
-        try await dumpsterService.commit(songIDs: songIDs)
-      }
       let appleMusicCleanupModel = CleanupSessionModel(
-        service: appleMusicService,
+        service: appleMusicDependencies.cleanupService,
         analytics: analytics,
         crashReporting: crashReporting
       )
       let appleMusicPlayback = AppleMusicTrackPlayer(
-        client: SystemAppleMusicPlayerClient(songStore: songStore)
+        client: appleMusicDependencies.playerClient
       )
 
       self.providerModel = providerModel
@@ -102,6 +124,25 @@ struct WavepointApp: App {
       appleMusicPlayback = nil
       startupError = error.localizedDescription
     }
+  }
+
+  private static func realAppleMusicDependencies() -> AppleMusicAppDependencies {
+    let songStore = MusicKitSongStore.shared
+    let dumpsterService = AppleMusicDumpsterService(
+      client: MusicKitPlaylistClient(songStore: songStore),
+      store: UserDefaultsDumpsterPlaylistStore()
+    )
+    let service = AppleMusicLibraryService(
+      client: MusicKitLibraryClient(songStore: songStore)
+    ) { songIDs in
+      try await dumpsterService.commit(songIDs: songIDs)
+    }
+    return AppleMusicAppDependencies(
+      authorizer: MusicKitAuthorizationService(),
+      selectionStore: UserDefaultsMusicProviderSelectionStore(),
+      cleanupService: service,
+      playerClient: SystemAppleMusicPlayerClient(songStore: songStore)
+    )
   }
 
   var body: some Scene {

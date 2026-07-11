@@ -21,6 +21,7 @@
 		279218A86D8EC254D2634CCB /* SpotifyCredentialProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1054182C94721EFFA9681FF0 /* SpotifyCredentialProviderTests.swift */; };
 		2A7C59C5AF4EDBF82544CDC5 /* WavepointApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D86E70C9F1ADF03410DAF8 /* WavepointApp.swift */; };
 		3435DCBF4AFF46CB882D4A32 /* SpotifyProviderTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66DF62FF86172C82BBCD4380 /* SpotifyProviderTokens.swift */; };
+		345DECE46B9780094C21A8CF /* AppleMusicSimulatorDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A33C5C4E14D879EBD78DB35 /* AppleMusicSimulatorDemo.swift */; };
 		3504FB47A1B0436E9607E455 /* AccountDeletionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B58A87DE49D1F33E26BB1C /* AccountDeletionServiceTests.swift */; };
 		366FB2F96FE30CDEF3A59B7D /* ScaffoldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B132EFB810181821F32DA339 /* ScaffoldTests.swift */; };
 		3C0BC58C29B0BC4C44224DB1 /* CleanupPlaybackCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 290CCEA1662B6B4F85BD1497 /* CleanupPlaybackCoordinatorTests.swift */; };
@@ -33,6 +34,7 @@
 		5D1D37541082C7766EF09FC5 /* CleanupScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E1E4A53844DFCF795B916A /* CleanupScreenTests.swift */; };
 		5EF30D3FFAFB402913404E0C /* SupabaseSpotifyAuthenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C299C8814D618E29CB9B297A /* SupabaseSpotifyAuthenticator.swift */; };
 		6381B1EFF0A1B76237105860 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0520ED51E8946CF37FCB4F7A /* FirebaseCrashlytics */; };
+		6395F33FAAF926F98A67658C /* AppleMusicSimulatorDemoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722C8714F4D22A51A8B471D2 /* AppleMusicSimulatorDemoTests.swift */; };
 		650570CD3ECFD13542BCDF72 /* AppSessionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971FDA9B72FF2961934EB2A8 /* AppSessionModelTests.swift */; };
 		68C7384E3E534E59EDC2D013 /* CleanupSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40140A49E0CEEB1775291B7B /* CleanupSessionModel.swift */; };
 		759A3F061C17F43D6A7A9226 /* CleanupCompleteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD9B7FC54DC2CB0B30265CA /* CleanupCompleteView.swift */; };
@@ -129,9 +131,11 @@
 		66DF62FF86172C82BBCD4380 /* SpotifyProviderTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyProviderTokens.swift; sourceTree = "<group>"; };
 		6C1577AA9954D85078A55858 /* TrackCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackCardView.swift; sourceTree = "<group>"; };
 		6F6F1768227FC3401F0E1283 /* LibraryTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryTrack.swift; sourceTree = "<group>"; };
+		722C8714F4D22A51A8B471D2 /* AppleMusicSimulatorDemoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicSimulatorDemoTests.swift; sourceTree = "<group>"; };
 		7521690E9F60680BFA351706 /* RemovalReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemovalReviewView.swift; sourceTree = "<group>"; };
 		759CF329AA559078A11150C3 /* AnalyticsTestDoubles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTestDoubles.swift; sourceTree = "<group>"; };
 		79B08F3C0961A318163802EA /* CleanupSessionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupSessionModelTests.swift; sourceTree = "<group>"; };
+		7A33C5C4E14D879EBD78DB35 /* AppleMusicSimulatorDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicSimulatorDemo.swift; sourceTree = "<group>"; };
 		7BF41D4A5B2DA5B08485C151 /* AppleMusicDumpsterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleMusicDumpsterService.swift; sourceTree = "<group>"; };
 		8246A6ED5074862C9F4C451C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		89B58A87DE49D1F33E26BB1C /* AccountDeletionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDeletionServiceTests.swift; sourceTree = "<group>"; };
@@ -211,6 +215,7 @@
 				FE5F809183A8A100DECFAF75 /* AppleMusicAuthorizationTests.swift */,
 				D01C9F8BA2B2265B203680D8 /* AppleMusicDumpsterServiceTests.swift */,
 				2C66BE5DE8F951572CC3F712 /* AppleMusicLibraryServiceTests.swift */,
+				722C8714F4D22A51A8B471D2 /* AppleMusicSimulatorDemoTests.swift */,
 				9E5BD898ED0245ED5AFC319E /* AppleMusicTrackPlayerTests.swift */,
 				F1F636382530F94D42290AA9 /* AppRootScreenTests.swift */,
 				971FDA9B72FF2961934EB2A8 /* AppSessionModelTests.swift */,
@@ -404,6 +409,7 @@
 			isa = PBXGroup;
 			children = (
 				8246A6ED5074862C9F4C451C /* AppConfiguration.swift */,
+				7A33C5C4E14D879EBD78DB35 /* AppleMusicSimulatorDemo.swift */,
 				C2D86E70C9F1ADF03410DAF8 /* WavepointApp.swift */,
 			);
 			path = App;
@@ -544,6 +550,7 @@
 				81E81C46F47964FFA465BAB2 /* AppleMusicAuthorizing.swift in Sources */,
 				EE0D82762E3125E33A60F0AD /* AppleMusicDumpsterService.swift in Sources */,
 				5958CD9A93E98CDD9376597F /* AppleMusicLibraryService.swift in Sources */,
+				345DECE46B9780094C21A8CF /* AppleMusicSimulatorDemo.swift in Sources */,
 				15E67B1DFEF7836758F742FA /* AppleMusicTrackPlayer.swift in Sources */,
 				EB52C7BA716632FDB11AD886 /* CleanupCardLayout.swift in Sources */,
 				759A3F061C17F43D6A7A9226 /* CleanupCompleteView.swift in Sources */,
@@ -594,6 +601,7 @@
 				78BF0E7533F0CFBB4C57ECF9 /* AppleMusicAuthorizationTests.swift in Sources */,
 				E494FF76D45449F197A7D34D /* AppleMusicDumpsterServiceTests.swift in Sources */,
 				51CC6348351B9E9BE79A94EC /* AppleMusicLibraryServiceTests.swift in Sources */,
+				6395F33FAAF926F98A67658C /* AppleMusicSimulatorDemoTests.swift in Sources */,
 				03BA4EC73D638ACF17B3D841 /* AppleMusicTrackPlayerTests.swift in Sources */,
 				7A7652FE868F8F867F45D4FC /* CleanupCardLayoutTests.swift in Sources */,
 				BE7DC9A0A2607D0BE869CC39 /* CleanupDeckBuilderTests.swift in Sources */,

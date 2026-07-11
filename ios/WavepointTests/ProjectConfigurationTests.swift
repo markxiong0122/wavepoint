@@ -14,4 +14,15 @@ final class ProjectConfigurationTests: XCTestCase {
     XCTAssertTrue(contents.contains("PRODUCT_BUNDLE_IDENTIFIER: ai.mapier.swipe"))
     XCTAssertTrue(contents.contains("TARGETED_DEVICE_FAMILY: 1"))
   }
+
+  func testAppleMusicDemoSourceIsDebugSimulatorGated() throws {
+    let sourceFile = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .appendingPathComponent("Wavepoint/App/AppleMusicSimulatorDemo.swift")
+    let contents = try String(contentsOf: sourceFile, encoding: .utf8)
+
+    XCTAssertTrue(contents.contains("#if DEBUG && targetEnvironment(simulator)"))
+    XCTAssertTrue(contents.contains("-WavepointAppleMusicDemo"))
+  }
 }
