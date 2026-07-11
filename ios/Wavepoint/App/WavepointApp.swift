@@ -24,18 +24,18 @@ struct WavepointApp: App {
         let demoScenario = AppleMusicSimulatorDemo.scenario(
           arguments: ProcessInfo.processInfo.arguments
         )
-        let isSimulatorDemo = demoScenario != nil
+        let analytics: any AnalyticsCapturing = demoScenario == nil
+          ? PostHogAnalytics.make()
+          : NoOpAnalytics()
+        let crashReporting: any CrashReporting = demoScenario == nil
+          ? FirebaseCrashReporting.make()
+          : NoOpCrashReporting()
       #else
-        let isSimulatorDemo = false
+        let analytics: any AnalyticsCapturing = PostHogAnalytics.make()
+        let crashReporting: any CrashReporting = FirebaseCrashReporting.make()
       #endif
 
-      let analytics: any AnalyticsCapturing = isSimulatorDemo
-        ? NoOpAnalytics()
-        : PostHogAnalytics.make()
       analytics.capture(.appOpened)
-      let crashReporting: any CrashReporting = isSimulatorDemo
-        ? NoOpCrashReporting()
-        : FirebaseCrashReporting.make()
       let configuration = try AppConfiguration.load()
       let tokenStore = KeychainSpotifyTokenStore()
       let supabaseClient = SupabaseSpotifyAuthenticator.makeClient(
