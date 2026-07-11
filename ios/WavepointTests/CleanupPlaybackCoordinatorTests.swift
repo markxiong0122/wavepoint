@@ -128,7 +128,7 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
     XCTAssertEqual(player.state, .ready)
   }
 
-  func testManualModePreparesFollowingCardsWithoutAutoplay() async {
+  func testNextCardRetriesAutoplayAfterTransientTrackFailure() async {
     let remote = RecordingCleanupRemotePlayer(
       error: CleanupRemoteTestError.failed,
       failOnPlayCall: 2
@@ -146,10 +146,46 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
     await coordinator.present(spotifyTrack(id: "second", previewURL: secondPreview))
     await coordinator.present(spotifyTrack(id: "third", previewURL: thirdPreview))
 
+    XCTAssertEqual(coordinator.state, .automatic)
+    XCTAssertEqual(player.source, .spotifyRemote)
+    XCTAssertEqual(player.state, .playing)
+    XCTAssertEqual(
+      remote.events,
+      [
+        .play("spotify:track:first"),
+        .pause,
+        .play("spotify:track:second"),
+        .play("spotify:track:third"),
+      ]
+    )
+    await coordinator.stop()
+  }
+
+  func testExplicitManualModePreparesFollowingCardsWithoutAutoplay() async {
+    let remote = RecordingCleanupRemotePlayer(error: CleanupRemoteTestError.failed)
+    let player = TrackPreviewPlayer(
+      engine: RecordingCleanupPreviewEngine(),
+      remote: remote,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    let coordinator = CleanupPlaybackCoordinator(player: player)
+    let first = spotifyTrack(
+      id: "first",
+      previewURL: URL(string: "https://audio.example/first.mp3")!
+    )
+    let second = spotifyTrack(
+      id: "second",
+      previewURL: URL(string: "https://audio.example/second.mp3")!
+    )
+
+    await coordinator.present(first)
+    await coordinator.continueManually(with: first)
+    await coordinator.present(second)
+
     XCTAssertEqual(coordinator.state, .manual)
     XCTAssertEqual(player.source, .directPreview)
     XCTAssertEqual(player.state, .ready)
-    XCTAssertEqual(remote.events.filter { if case .play = $0 { true } else { false } }.count, 2)
+    XCTAssertEqual(remote.events, [.play("spotify:track:first")])
   }
 
   func testStoppingThenPresentingSameTrackResumesWithoutDoublePause() async {

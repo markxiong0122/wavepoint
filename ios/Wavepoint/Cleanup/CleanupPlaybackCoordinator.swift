@@ -15,6 +15,7 @@ final class CleanupPlaybackCoordinator {
   let player: TrackPreviewPlayer
   private var currentTrackID: String?
   private var hasStartedDeck = false
+  private var prefersManualPlayback = false
   private var presentationGeneration = 0
 
   init(player: TrackPreviewPlayer) {
@@ -25,7 +26,7 @@ final class CleanupPlaybackCoordinator {
     guard currentTrackID != track.id || player.state != .playing else { return }
     presentationGeneration += 1
     let generation = presentationGeneration
-    if state == .manual {
+    if prefersManualPlayback {
       await prepareManually(track, generation: generation)
       return
     }
@@ -55,6 +56,7 @@ final class CleanupPlaybackCoordinator {
   }
 
   func continueManually(with track: LibraryTrack) async {
+    prefersManualPlayback = true
     presentationGeneration += 1
     await prepareManually(track, generation: presentationGeneration)
   }
