@@ -55,8 +55,7 @@ final class AppleMusicDumpsterService {
       return try await createReplacement(songIDs: stagedIDs)
     }
 
-    let originalIDs = stableUnique(existing.songIDs)
-    let originalSet = Set(originalIDs)
+    let originalSet = Set(existing.songIDs)
     let missingIDs = stagedIDs.filter { !originalSet.contains($0) }
     guard !missingIDs.isEmpty else {
       return .dumpster(updatedCount: 0, destinationURL: existing.destinationURL)
@@ -96,8 +95,7 @@ final class AppleMusicDumpsterService {
       return try await createReplacement(songIDs: stagedIDs)
     }
 
-    let refreshedIDs = stableUnique(refreshed.songIDs)
-    let refreshedSet = Set(refreshedIDs)
+    let refreshedSet = Set(refreshed.songIDs)
     let stillMissing = stagedIDs.filter { !refreshedSet.contains($0) }
     let newlyAddedCount = stagedIDs.filter { !originalSet.contains($0) }.count
 
