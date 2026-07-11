@@ -1,43 +1,62 @@
 type Dependencies = {
   authenticate: (request: Request) => Promise<boolean>;
   refreshSpotifyToken: (refreshToken: string) => Promise<Response>;
+  requestID?: () => string;
+  log?: (event: OperationalLogEvent) => void;
+};
+
+type OperationalLogEvent = {
+  event: "edge_function_request";
+  function: "spotify-token-refresh";
+  request_id: string;
+  status: number;
 };
 
 export function createHandler(dependencies: Dependencies) {
   return async (request: Request): Promise<Response> => {
+    const requestID = (dependencies.requestID ?? (() => crypto.randomUUID()))();
+    const observed = (response: Response) =>
+      observe(
+        response,
+        requestID,
+        dependencies.log ?? defaultLog,
+      );
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      return observed(
+        new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Headers":
+              "authorization, content-type, apikey",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }),
+      );
     }
 
     if (request.method !== "POST") {
-      return json({ error: "method_not_allowed" }, 405);
+      return observed(json({ error: "method_not_allowed" }, 405));
     }
 
     if (!(await dependencies.authenticate(request))) {
-      return json({ error: "unauthorized" }, 401);
+      return observed(json({ error: "unauthorized" }, 401));
     }
 
     let body: { refresh_token?: unknown };
     try {
       body = await request.json();
     } catch {
-      return json({ error: "invalid_json" }, 400);
+      return observed(json({ error: "invalid_json" }, 400));
     }
 
     if (
       typeof body.refresh_token !== "string" || body.refresh_token.length === 0
     ) {
-      return json({ error: "missing_refresh_token" }, 400);
+      return observed(json({ error: "missing_refresh_token" }, 400));
     }
 
-    return dependencies.refreshSpotifyToken(body.refresh_token);
+    return observed(await dependencies.refreshSpotifyToken(body.refresh_token));
   };
 }
 
@@ -84,6 +103,30 @@ async function refreshSpotifyToken(refreshToken: string): Promise<Response> {
 
 function json(value: unknown, status: number): Response {
   return Response.json(value, { status });
+}
+
+function observe(
+  response: Response,
+  requestID: string,
+  log: (event: OperationalLogEvent) => void,
+): Response {
+  const headers = new Headers(response.headers);
+  headers.set("X-Request-ID", requestID);
+  log({
+    event: "edge_function_request",
+    function: "spotify-token-refresh",
+    request_id: requestID,
+    status: response.status,
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function defaultLog(event: OperationalLogEvent) {
+  console.log(JSON.stringify(event));
 }
 
 if (import.meta.main) {

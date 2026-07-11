@@ -1,31 +1,54 @@
 type Dependencies = {
   authenticate: (request: Request) => Promise<string | null>;
   deleteUser: (userID: string) => Promise<Response>;
+  requestID?: () => string;
+  log?: (event: OperationalLogEvent) => void;
+};
+
+type OperationalLogEvent = {
+  event: "edge_function_request";
+  function: "delete-account";
+  request_id: string;
+  status: number;
 };
 
 export function createHandler(dependencies: Dependencies) {
   return async (request: Request): Promise<Response> => {
+    const requestID = (dependencies.requestID ?? (() => crypto.randomUUID()))();
+    const observed = (response: Response) =>
+      observe(
+        response,
+        requestID,
+        dependencies.log ?? defaultLog,
+      );
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Headers": "authorization, content-type, apikey",
-          "Access-Control-Allow-Methods": "DELETE, OPTIONS",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
+      return observed(
+        new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Headers":
+              "authorization, content-type, apikey",
+            "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }),
+      );
     }
 
     if (request.method !== "DELETE") {
-      return Response.json({ error: "method_not_allowed" }, { status: 405 });
+      return observed(
+        Response.json({ error: "method_not_allowed" }, { status: 405 }),
+      );
     }
 
     const userID = await dependencies.authenticate(request);
     if (!userID) {
-      return Response.json({ error: "unauthorized" }, { status: 401 });
+      return observed(
+        Response.json({ error: "unauthorized" }, { status: 401 }),
+      );
     }
 
-    return dependencies.deleteUser(userID);
+    return observed(await dependencies.deleteUser(userID));
   };
 }
 
@@ -77,6 +100,30 @@ async function deleteUser(userID: string): Promise<Response> {
     { error: "account_deletion_failed" },
     { status: response.status },
   );
+}
+
+function observe(
+  response: Response,
+  requestID: string,
+  log: (event: OperationalLogEvent) => void,
+): Response {
+  const headers = new Headers(response.headers);
+  headers.set("X-Request-ID", requestID);
+  log({
+    event: "edge_function_request",
+    function: "delete-account",
+    request_id: requestID,
+    status: response.status,
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function defaultLog(event: OperationalLogEvent) {
+  console.log(JSON.stringify(event));
 }
 
 if (import.meta.main) {

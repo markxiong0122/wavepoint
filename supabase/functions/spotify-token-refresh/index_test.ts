@@ -34,12 +34,15 @@ Deno.test("requires a provider refresh token", async () => {
 
 Deno.test("returns the refreshed Spotify token", async () => {
   let receivedRefreshToken: string | undefined;
+  const logs: unknown[] = [];
   const handler = createHandler({
     authenticate: async () => true,
     refreshSpotifyToken: async (refreshToken) => {
       receivedRefreshToken = refreshToken;
       return Response.json({ access_token: "new-access", expires_in: 3600 });
     },
+    requestID: () => "request-1",
+    log: (event) => logs.push(event),
   });
 
   const response = await handler(
@@ -55,6 +58,16 @@ Deno.test("returns the refreshed Spotify token", async () => {
     access_token: "new-access",
     expires_in: 3600,
   });
+  assertEquals(response.headers.get("X-Request-ID"), "request-1");
+  assertEquals(logs, [{
+    event: "edge_function_request",
+    function: "spotify-token-refresh",
+    request_id: "request-1",
+    status: 200,
+  }]);
+  if (JSON.stringify(logs).includes("provider-refresh")) {
+    throw new Error("Refresh tokens must never enter operational logs");
+  }
 });
 
 function assertEquals(actual: unknown, expected: unknown) {

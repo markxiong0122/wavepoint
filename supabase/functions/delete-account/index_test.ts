@@ -28,12 +28,15 @@ Deno.test("accepts only DELETE and OPTIONS", async () => {
 
 Deno.test("deletes the user returned by authentication", async () => {
   let deletedUserID: string | undefined;
+  const logs: unknown[] = [];
   const handler = createHandler({
     authenticate: async () => "authenticated-user",
     deleteUser: async (userID) => {
       deletedUserID = userID;
       return new Response(null, { status: 204 });
     },
+    requestID: () => "request-2",
+    log: (event) => logs.push(event),
   });
 
   const response = await handler(
@@ -46,15 +49,26 @@ Deno.test("deletes the user returned by authentication", async () => {
 
   assertEquals(response.status, 204);
   assertEquals(deletedUserID, "authenticated-user");
+  assertEquals(response.headers.get("X-Request-ID"), "request-2");
+  assertEquals(logs, [{
+    event: "edge_function_request",
+    function: "delete-account",
+    request_id: "request-2",
+    status: 204,
+  }]);
+  if (JSON.stringify(logs).includes("authenticated-user")) {
+    throw new Error("User IDs must never enter operational logs");
+  }
 });
 
 Deno.test("surfaces an upstream deletion failure", async () => {
   const handler = createHandler({
     authenticate: async () => "authenticated-user",
-    deleteUser: async () => Response.json(
-      { error: "account_deletion_failed" },
-      { status: 503 },
-    ),
+    deleteUser: async () =>
+      Response.json(
+        { error: "account_deletion_failed" },
+        { status: 503 },
+      ),
   });
 
   const response = await handler(
