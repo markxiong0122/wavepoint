@@ -38,3 +38,23 @@ protocol CleanupLibraryServing: Sendable {
   func fetchLibraryTracks() async throws -> [LibraryTrack]
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult
 }
+
+struct CleanupLibraryLoadProgress: Equatable, Sendable {
+  let loadedCount: Int
+  let totalCount: Int
+}
+
+extension CleanupLibraryServing {
+  func fetchLibraryTracks(
+    progress: @escaping @Sendable (CleanupLibraryLoadProgress) async -> Void
+  ) async throws -> [LibraryTrack] {
+    let tracks = try await fetchLibraryTracks()
+    await progress(
+      CleanupLibraryLoadProgress(
+        loadedCount: tracks.count,
+        totalCount: tracks.count
+      )
+    )
+    return tracks
+  }
+}

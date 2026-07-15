@@ -4,12 +4,13 @@ import XCTest
 
 final class MusicProviderPickerTests: XCTestCase {
   func testPickerOptionsExposeEqualProviderActionsAndTruthfulRequirements() {
-    XCTAssertEqual(MusicProviderPickerOption.spotify.title, "CONTINUE WITH SPOTIFY")
+    XCTAssertEqual(MusicProviderPickerOption.spotify.title, "SPOTIFY · LIMITED BETA")
     XCTAssertEqual(
       MusicProviderPickerOption.spotify.accessibilityIdentifier,
       "continue-with-spotify"
     )
     XCTAssertTrue(MusicProviderPickerOption.spotify.disclosure.contains("Premium"))
+    XCTAssertTrue(MusicProviderPickerOption.spotify.disclosure.contains("tester access"))
 
     XCTAssertEqual(
       MusicProviderPickerOption.appleMusic.title,
@@ -21,6 +22,11 @@ final class MusicProviderPickerTests: XCTestCase {
     )
     XCTAssertTrue(MusicProviderPickerOption.appleMusic.disclosure.contains("Sync Library"))
     XCTAssertTrue(MusicProviderPickerOption.appleMusic.disclosure.contains("Dumpster"))
+
+    XCTAssertEqual(MusicProviderPickerOption.demo.title, "TRY A DEMO CLEANUP")
+    XCTAssertEqual(MusicProviderPickerOption.demo.accessibilityIdentifier, "try-demo-cleanup")
+    XCTAssertTrue(MusicProviderPickerOption.demo.disclosure.contains("fictional"))
+    XCTAssertTrue(MusicProviderPickerOption.demo.disclosure.contains("Nothing"))
   }
 
   func testOnlySpotifyHasAWavepointServerAccountToDelete() {

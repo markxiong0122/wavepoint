@@ -52,6 +52,8 @@ targets:
         SUPABASE_URL: $(SUPABASE_URL)
         SPOTIFY_APP_REMOTE_CALLBACK_URL: $(SPOTIFY_APP_REMOTE_CALLBACK_URL)
         SPOTIFY_CLIENT_ID: $(SPOTIFY_CLIENT_ID)
+        UIAppFonts:
+          - AveriaSerifLibre-Bold.ttf
         LSApplicationQueriesSchemes:
           - spotify
         UILaunchScreen: {}
@@ -63,7 +65,7 @@ targets:
         OTHER_LDFLAGS: $(inherited) -ObjC
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: HV58968J2R
-        CURRENT_PROJECT_VERSION: 7
+        CURRENT_PROJECT_VERSION: 8
         MARKETING_VERSION: 0.1.0
         PRODUCT_BUNDLE_IDENTIFIER: ai.mapier.swipe
         TARGETED_DEVICE_FAMILY: 1

@@ -5,6 +5,28 @@ import XCTest
 
 @MainActor
 final class CleanupPlaybackCoordinatorTests: XCTestCase {
+  func testDemoAutomaticallyPlaysItsLocalPreview() async {
+    let previewURL = URL(fileURLWithPath: "/demo-preview.m4a")
+    let engine = RecordingCleanupPreviewEngine()
+    let player = TrackPreviewPlayer(
+      engine: engine,
+      remote: nil,
+      segmentSleep: { duration in try? await Task.sleep(for: duration) }
+    )
+    let coordinator = CleanupPlaybackCoordinator(
+      player: player,
+      usesDirectPreviewForAutomaticPlayback: true
+    )
+
+    await coordinator.present(spotifyTrack(id: "demo", previewURL: previewURL))
+
+    XCTAssertEqual(coordinator.state, .automatic)
+    XCTAssertEqual(player.source, .directPreview)
+    XCTAssertEqual(player.state, .playing)
+    XCTAssertEqual(engine.playedURLs, [previewURL])
+    await coordinator.stop()
+  }
+
   func testFirstTrackStartsSpotifyRemoteAndEnablesAutomaticMode() async {
     let remote = RecordingCleanupRemotePlayer()
     let player = TrackPreviewPlayer(
@@ -279,7 +301,11 @@ final class CleanupPlaybackCoordinatorTests: XCTestCase {
 
 @MainActor
 private final class RecordingCleanupPreviewEngine: TrackPreviewPlaybackEngine {
-  func play(url: URL) {}
+  private(set) var playedURLs: [URL] = []
+
+  func play(url: URL) {
+    playedURLs.append(url)
+  }
   func pause() {}
   func resume() {}
   func stop() {}

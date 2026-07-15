@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CleanupCompleteView: View {
   let summary: CleanupSummary
+  let presentation: CleanupProviderPresentation
   let onStartAgain: () -> Void
   let onSignOut: () -> Void
 
@@ -50,11 +51,7 @@ struct CleanupCompleteView: View {
     .accessibilityIdentifier("cleanup-complete")
   }
 
-  private var presentation: CleanupProviderPresentation {
-    CleanupProviderPresentation(provider: summary.provider)
-  }
-
   private var exitActionTitle: String {
-    summary.provider == .spotify ? "SIGN OUT" : "CHANGE MUSIC SERVICE"
+    presentation.exitActionTitle
   }
 }

@@ -3,20 +3,24 @@ import SwiftUI
 enum MusicProviderPickerOption: Equatable {
   case spotify
   case appleMusic
+  case demo
 
   var title: String {
     switch self {
-    case .spotify: "CONTINUE WITH SPOTIFY"
+    case .spotify: "SPOTIFY · LIMITED BETA"
     case .appleMusic: "CONTINUE WITH APPLE MUSIC"
+    case .demo: "TRY A DEMO CLEANUP"
     }
   }
 
   var disclosure: String {
     switch self {
     case .spotify:
-      "Spotify Premium required. Wavepoint can remove confirmed songs from Liked Songs."
+      "Spotify Premium and tester access are currently required. Wavepoint can remove confirmed songs from Liked Songs."
     case .appleMusic:
       "Apple Music and Sync Library required. Tossed songs go to a Dumpster playlist and stay in your Library until you delete them in Music."
+    case .demo:
+      "Uses fictional songs and a local audio sample. Nothing connects to or changes a music library."
     }
   }
 
@@ -24,6 +28,7 @@ enum MusicProviderPickerOption: Equatable {
     switch self {
     case .spotify: "continue-with-spotify"
     case .appleMusic: "continue-with-apple-music"
+    case .demo: "try-demo-cleanup"
     }
   }
 }
@@ -31,6 +36,7 @@ enum MusicProviderPickerOption: Equatable {
 struct MusicProviderPickerView: View {
   let onSelectSpotify: () -> Void
   let onSelectAppleMusic: () -> Void
+  let onTryDemo: () -> Void
 
   var body: some View {
     ScrollView {
@@ -53,15 +59,19 @@ struct MusicProviderPickerView: View {
           .padding(.top, 48)
           .accessibilityAddTraits(.isHeader)
 
-        Text("Pick a music service. Hear the songs you buried, then swipe to keep or clean them up.")
-          .font(.system(size: 18, weight: .medium, design: .rounded))
-          .foregroundStyle(WavepointTheme.mutedInk)
-          .lineSpacing(4)
-          .padding(.top, 24)
+        Text(
+          "Pick a music service. Hear the songs you buried, then swipe to keep or clean them up."
+        )
+        .font(.system(size: 18, weight: .medium, design: .rounded))
+        .foregroundStyle(WavepointTheme.mutedInk)
+        .lineSpacing(4)
+        .padding(.top, 24)
 
         providerAction(.spotify, action: onSelectSpotify)
           .padding(.top, 42)
         providerAction(.appleMusic, action: onSelectAppleMusic)
+          .padding(.top, 24)
+        providerAction(.demo, action: onTryDemo)
           .padding(.top, 24)
       }
       .padding(.horizontal, 24)
@@ -88,7 +98,7 @@ struct MusicProviderPickerView: View {
         .foregroundStyle(WavepointTheme.ink)
         .padding(.horizontal, 18)
         .frame(minHeight: 58)
-        .background(option == .spotify ? WavepointTheme.keep : WavepointTheme.audio)
+        .background(actionColor(for: option))
         .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
         .overlay {
           RoundedRectangle(cornerRadius: WavepointTheme.controlRadius)
@@ -107,6 +117,14 @@ struct MusicProviderPickerView: View {
         .font(.system(size: 10, weight: .medium, design: .monospaced))
         .foregroundStyle(WavepointTheme.mutedInk)
         .lineSpacing(3)
+    }
+  }
+
+  private func actionColor(for option: MusicProviderPickerOption) -> Color {
+    switch option {
+    case .spotify: WavepointTheme.keep
+    case .appleMusic: WavepointTheme.audio
+    case .demo: WavepointTheme.raisedPaper
     }
   }
 }

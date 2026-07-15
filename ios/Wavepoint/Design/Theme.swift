@@ -14,6 +14,10 @@ enum WavepointTheme {
   static let controlRadius: CGFloat = 6
   static let panelRadius: CGFloat = 14
   static let cardRadius: CGFloat = 19
+
+  static func editorialFont(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+    .custom("AveriaSerifLibre-Bold", size: size, relativeTo: textStyle)
+  }
 }
 
 struct CutRecordMark: View {

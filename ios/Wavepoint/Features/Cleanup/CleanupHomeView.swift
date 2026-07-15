@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum CleanupScreen: Equatable {
+  case batchPicker
   case loading
   case deck
   case review
@@ -10,7 +11,8 @@ enum CleanupScreen: Equatable {
 
   init(state: CleanupSessionState) {
     switch state {
-    case .idle, .loading: self = .loading
+    case .idle, .choosingBatch: self = .batchPicker
+    case .loading: self = .loading
     case .deciding: self = .deck
     case .reviewing: self = .review
     case .committing: self = .committing
@@ -21,6 +23,7 @@ enum CleanupScreen: Equatable {
 
   var accessibilityIdentifier: String {
     switch self {
+    case .batchPicker: "cleanup-batch-picker"
     case .loading: "cleanup-loading"
     case .deck: "cleanup-deck"
     case .review: "cleanup-review"
@@ -59,6 +62,8 @@ struct CleanupHomeView: View {
   @State private var playback: CleanupPlaybackCoordinator
   @State private var presentedSheet: CleanupSheet?
   @State private var isConfirmingProviderChange = false
+  @AppStorage("cleanupBatchSongCount") private var selectedBatchSongCount =
+    CleanupBatchSize.sideA.songCount
   let onSignOut: () -> Void
   let onDeleteAccount: () -> Void
   let onChangeProvider: () -> Void
@@ -66,16 +71,18 @@ struct CleanupHomeView: View {
 
   init(
     model: CleanupSessionModel,
-    remotePlayback: any RemoteTrackPlaying,
+    remotePlayback: (any RemoteTrackPlaying)?,
     onSignOut: @escaping () -> Void,
     onDeleteAccount: @escaping () -> Void,
     onChangeProvider: @escaping () -> Void,
+    usesDirectPreviewForAutomaticPlayback: Bool = false,
     haptics: CleanupHaptics = .live
   ) {
     _model = State(initialValue: model)
     _playback = State(
       initialValue: CleanupPlaybackCoordinator(
-        player: TrackPreviewPlayer(remote: remotePlayback)
+        player: TrackPreviewPlayer(remote: remotePlayback),
+        usesDirectPreviewForAutomaticPlayback: usesDirectPreviewForAutomaticPlayback
       )
     )
     self.onSignOut = onSignOut
@@ -87,7 +94,15 @@ struct CleanupHomeView: View {
   var body: some View {
     Group {
       switch model.state {
-      case .idle, .loading:
+      case .idle, .choosingBatch:
+        CleanupBatchPickerView(
+          selection: selectedBatchBinding,
+          progress: model.libraryLoadProgress,
+          onStart: { model.chooseBatch(selectedBatch) },
+          headerActionTitle: model.presentation.isDemo ? "EXIT DEMO" : "ACCOUNT",
+          onHeaderAction: headerAction
+        )
+      case .loading:
         loadingView
       case .deciding:
         playbackContent
@@ -103,6 +118,7 @@ struct CleanupHomeView: View {
       case .complete(let summary):
         CleanupCompleteView(
           summary: summary,
+          presentation: model.presentation,
           onStartAgain: { Task { await startAgain() } },
           onSignOut: onSignOut
         )
@@ -113,7 +129,7 @@ struct CleanupHomeView: View {
     .background(WavepointTheme.darkSurface.ignoresSafeArea())
     .task {
       guard model.state == .idle else { return }
-      await model.load()
+      await model.prepare()
     }
     .task(id: playbackTaskID) {
       guard model.state == .deciding, let track = model.currentTrack else {
@@ -163,6 +179,17 @@ struct CleanupHomeView: View {
     return "\(screen):\(model.currentTrack?.id ?? "none")"
   }
 
+  private var selectedBatch: CleanupBatchSize {
+    CleanupBatchSize(rawValue: selectedBatchSongCount) ?? .sideA
+  }
+
+  private var selectedBatchBinding: Binding<CleanupBatchSize> {
+    Binding(
+      get: { selectedBatch },
+      set: { selectedBatchSongCount = $0.songCount }
+    )
+  }
+
   private var loadingView: some View {
     VStack(spacing: 18) {
       CutRecordMark(size: 76)
@@ -171,6 +198,11 @@ struct CleanupHomeView: View {
       Text(model.presentation.loadingTitle)
         .font(.system(size: 12, weight: .bold, design: .monospaced))
         .tracking(0.7)
+      if let progress = model.libraryLoadProgress, progress.totalCount > 0 {
+        Text("\(progress.loadedCount) / \(progress.totalCount) SONGS SCANNED")
+          .font(.system(size: 10, weight: .bold, design: .monospaced))
+          .foregroundStyle(WavepointTheme.paper.opacity(0.62))
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .foregroundStyle(WavepointTheme.paper)
@@ -217,6 +249,7 @@ struct CleanupHomeView: View {
       if let track = model.currentTrack {
         TrackCardView(
           track: track,
+          presentation: model.presentation,
           position: model.completedCount + 1,
           total: model.totalCount,
           previewPlayer: playback.player,
@@ -241,14 +274,12 @@ struct CleanupHomeView: View {
       VStack(alignment: .leading, spacing: 1) {
         Text("WAVEPOINT")
           .font(.system(size: 15, weight: .black, design: .rounded))
-        Text("CLEANUP SESSION")
+        Text(model.presentation.isDemo ? "DEMO SESSION" : "CLEANUP SESSION")
           .font(.system(size: 9, weight: .bold, design: .monospaced))
           .tracking(0.8)
       }
       Spacer()
-      Button("ACCOUNT") {
-        presentedSheet = .account
-      }
+      Button(model.presentation.isDemo ? "EXIT DEMO" : "ACCOUNT", action: headerAction)
         .font(.system(size: 9, weight: .bold, design: .monospaced))
         .foregroundStyle(WavepointTheme.paper.opacity(0.7))
         .frame(minHeight: 44)
@@ -362,7 +393,7 @@ struct CleanupHomeView: View {
 
       Button(model.stagedRemovals.isEmpty ? "TRY AGAIN" : "BACK TO REVIEW") {
         if model.stagedRemovals.isEmpty {
-          Task { await model.load() }
+          Task { await model.retryLoad() }
         } else {
           model.returnToReview()
         }
@@ -375,12 +406,12 @@ struct CleanupHomeView: View {
       .clipShape(RoundedRectangle(cornerRadius: WavepointTheme.controlRadius))
 
       Button(
-        model.provider == .spotify ? "RECONNECT SPOTIFY" : "CHANGE MUSIC SERVICE",
-        action: model.provider == .spotify ? onSignOut : onChangeProvider
+        errorExitTitle,
+        action: errorExitAction
       )
-        .font(.system(size: 11, weight: .bold, design: .monospaced))
-        .foregroundStyle(WavepointTheme.paper)
-        .frame(minHeight: 48)
+      .font(.system(size: 11, weight: .bold, design: .monospaced))
+      .foregroundStyle(WavepointTheme.paper)
+      .frame(minHeight: 48)
     }
     .padding(24)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -393,6 +424,27 @@ struct CleanupHomeView: View {
       isConfirmingProviderChange = true
     } else {
       onChangeProvider()
+    }
+  }
+
+  private func headerAction() {
+    if model.presentation.isDemo {
+      onChangeProvider()
+    } else {
+      presentedSheet = .account
+    }
+  }
+
+  private var errorExitTitle: String {
+    if model.presentation.isDemo { return "EXIT DEMO" }
+    return model.provider == .spotify ? "RECONNECT SPOTIFY" : "CHANGE MUSIC SERVICE"
+  }
+
+  private func errorExitAction() {
+    if model.presentation.isDemo || model.provider == .appleMusic {
+      onChangeProvider()
+    } else {
+      onSignOut()
     }
   }
 
@@ -420,6 +472,6 @@ struct CleanupHomeView: View {
 
   private func startAgain() async {
     await playback.resetForNewDeck()
-    await model.load()
+    await model.prepare()
   }
 }

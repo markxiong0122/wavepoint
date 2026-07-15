@@ -22,8 +22,25 @@ final class CleanupScreenTests: XCTestCase {
     XCTAssertTrue(apple.completionInstructions.contains("Remove from Playlist alone"))
   }
 
+  func testDemoPresentationIsExplicitAndNonDestructive() {
+    let demo = CleanupProviderPresentation.demo
+
+    XCTAssertTrue(demo.isDemo)
+    XCTAssertEqual(demo.destructiveActionLabel, "× CUT")
+    XCTAssertEqual(demo.reviewActionTitle(count: 1), "FINISH DEMO WITH 1 CUT")
+    XCTAssertEqual(demo.reviewActionTitle(count: 3), "FINISH DEMO WITH 3 CUTS")
+    XCTAssertEqual(demo.completionTitle(hasDecisions: true), "DEMO COMPLETE")
+    XCTAssertEqual(demo.exitActionTitle, "EXIT DEMO")
+    XCTAssertTrue(demo.reviewTrustCopy.contains("will not change Spotify"))
+    XCTAssertTrue(demo.completionInstructions.contains("fictional"))
+  }
+
   func testStateMapsToStableAccessibleScreen() {
-    XCTAssertEqual(CleanupScreen(state: .idle).accessibilityIdentifier, "cleanup-loading")
+    XCTAssertEqual(CleanupScreen(state: .idle).accessibilityIdentifier, "cleanup-batch-picker")
+    XCTAssertEqual(
+      CleanupScreen(state: .choosingBatch).accessibilityIdentifier,
+      "cleanup-batch-picker"
+    )
     XCTAssertEqual(CleanupScreen(state: .loading).accessibilityIdentifier, "cleanup-loading")
     XCTAssertEqual(CleanupScreen(state: .deciding).accessibilityIdentifier, "cleanup-deck")
     XCTAssertEqual(CleanupScreen(state: .reviewing).accessibilityIdentifier, "cleanup-review")
@@ -34,13 +51,21 @@ final class CleanupScreenTests: XCTestCase {
           .init(provider: .spotify, decisionCount: 2, result: .removed(count: 1))
         )
       )
-        .accessibilityIdentifier,
+      .accessibilityIdentifier,
       "cleanup-complete"
     )
     XCTAssertEqual(
       CleanupScreen(state: .failed("Try again")).accessibilityIdentifier,
       "cleanup-error"
     )
+  }
+
+  func testCleanupBatchOptionsKeepTheirNamesAndCountsClear() {
+    XCTAssertEqual(CleanupBatchSize.allCases.map(\.songCount), [10, 25, 50])
+    XCTAssertEqual(CleanupBatchSize.needleDrop.title, "Needle Drop")
+    XCTAssertEqual(CleanupBatchSize.sideA.title, "Side A")
+    XCTAssertEqual(CleanupBatchSize.crateDig.title, "Crate Dig")
+    XCTAssertTrue(CleanupBatchSize.sideA.isRecommended)
   }
 
   func testPlaybackStateMapsToStartingDeckOrFailure() {

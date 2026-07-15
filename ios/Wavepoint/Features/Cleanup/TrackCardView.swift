@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TrackCardView: View {
   let track: LibraryTrack
+  let presentation: CleanupProviderPresentation
   let position: Int
   let total: Int
   let previewPlayer: TrackPreviewPlayer
@@ -26,14 +27,14 @@ struct TrackCardView: View {
         artworkHeight: layout.artworkHeight,
         detailHeight: layout.cardHeight - layout.artworkHeight
       )
-        .frame(height: layout.cardHeight, alignment: .top)
-        .overlay(alignment: dragOffset.width < 0 ? .topTrailing : .topLeading) {
-          decisionStamp
-        }
-        .offset(dragOffset)
-        .rotationEffect(.degrees(reduceMotion ? 0 : rotation(in: proxy.size.width)))
-        .gesture(dragGesture(cardWidth: proxy.size.width))
-        .padding(.bottom, layout.bottomClearance)
+      .frame(height: layout.cardHeight, alignment: .top)
+      .overlay(alignment: dragOffset.width < 0 ? .topTrailing : .topLeading) {
+        decisionStamp
+      }
+      .offset(dragOffset)
+      .rotationEffect(.degrees(reduceMotion ? 0 : rotation(in: proxy.size.width)))
+      .gesture(dragGesture(cardWidth: proxy.size.width))
+      .padding(.bottom, layout.bottomClearance)
     }
     .frame(maxHeight: .infinity, alignment: .top)
   }
@@ -106,10 +107,6 @@ struct TrackCardView: View {
   private var savedDateLabel: String {
     guard let addedAt = track.addedAt else { return "SAVED DATE UNKNOWN" }
     return "SAVED \(addedAt.formatted(.dateTime.year()))"
-  }
-
-  private var presentation: CleanupProviderPresentation {
-    CleanupProviderPresentation(provider: track.provider)
   }
 
   @ViewBuilder

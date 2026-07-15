@@ -28,10 +28,15 @@ struct RemovalReviewView: View {
         LazyVStack(spacing: 10) {
           ForEach(tracks) { track in
             HStack(spacing: 12) {
-              AsyncImage(url: track.artworkURL) { image in
-                image.resizable().scaledToFill()
-              } placeholder: {
-                WavepointTheme.midSurface
+              AsyncImage(url: track.artworkURL) { phase in
+                if case .success(let image) = phase {
+                  image.resizable().scaledToFill()
+                } else {
+                  ZStack {
+                    WavepointTheme.midSurface
+                    CutRecordMark(size: 36)
+                  }
+                }
               }
               .frame(width: 58, height: 58)
               .clipped()

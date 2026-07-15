@@ -16,6 +16,7 @@ struct WavepointApp: App {
   private let spotifyPlayback: SpotifyAppRemoteService?
   private let appleMusicCleanupModel: CleanupSessionModel?
   private let appleMusicPlayback: AppleMusicTrackPlayer?
+  private let demoCleanupModel: CleanupSessionModel?
   private let startupError: String?
 
   init() {
@@ -24,10 +25,12 @@ struct WavepointApp: App {
         let demoScenario = AppleMusicSimulatorDemo.scenario(
           arguments: ProcessInfo.processInfo.arguments
         )
-        let analytics: any AnalyticsCapturing = demoScenario == nil
+        let analytics: any AnalyticsCapturing =
+          demoScenario == nil
           ? PostHogAnalytics.make()
           : NoOpAnalytics()
-        let crashReporting: any CrashReporting = demoScenario == nil
+        let crashReporting: any CrashReporting =
+          demoScenario == nil
           ? FirebaseCrashReporting.make()
           : NoOpCrashReporting()
       #else
@@ -107,6 +110,10 @@ struct WavepointApp: App {
       let appleMusicPlayback = AppleMusicTrackPlayer(
         client: appleMusicDependencies.playerClient
       )
+      let demoCleanupModel = CleanupSessionModel(
+        service: ReviewDemoLibraryService(),
+        presentation: .demo
+      )
 
       self.providerModel = providerModel
       self.spotifyModel = spotifyModel
@@ -114,6 +121,7 @@ struct WavepointApp: App {
       self.spotifyPlayback = spotifyPlayback
       self.appleMusicCleanupModel = appleMusicCleanupModel
       self.appleMusicPlayback = appleMusicPlayback
+      self.demoCleanupModel = demoCleanupModel
       self.startupError = nil
     } catch {
       providerModel = nil
@@ -122,6 +130,7 @@ struct WavepointApp: App {
       spotifyPlayback = nil
       appleMusicCleanupModel = nil
       appleMusicPlayback = nil
+      demoCleanupModel = nil
       startupError = error.localizedDescription
     }
   }
@@ -152,7 +161,8 @@ struct WavepointApp: App {
         let spotifyCleanupModel,
         let spotifyPlayback,
         let appleMusicCleanupModel,
-        let appleMusicPlayback
+        let appleMusicPlayback,
+        let demoCleanupModel
       {
         AppRootView(
           providerModel: providerModel,
@@ -160,7 +170,8 @@ struct WavepointApp: App {
           spotifyCleanupModel: spotifyCleanupModel,
           spotifyPlayback: spotifyPlayback,
           appleMusicCleanupModel: appleMusicCleanupModel,
-          appleMusicPlayback: appleMusicPlayback
+          appleMusicPlayback: appleMusicPlayback,
+          demoCleanupModel: demoCleanupModel
         )
       } else {
         ConfigurationRequiredView(message: startupError ?? "App configuration is missing.")

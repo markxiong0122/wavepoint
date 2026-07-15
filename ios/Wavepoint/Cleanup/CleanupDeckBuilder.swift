@@ -14,9 +14,11 @@ struct CleanupDeckBuilder: Sendable {
 
   func build(
     from tracks: [LibraryTrack],
+    maximumTrackCount: Int? = nil,
     seed: UInt64 = UInt64.random(in: UInt64.min...UInt64.max)
   ) -> [LibraryTrack] {
     var generator = SplitMix64(seed: seed)
+    let trackLimit = max(0, maximumTrackCount ?? self.maximumTrackCount)
 
     return
       tracks
@@ -34,7 +36,7 @@ struct CleanupDeckBuilder: Sendable {
         }
         return lhs.track.id < rhs.track.id
       }
-      .prefix(maximumTrackCount)
+      .prefix(trackLimit)
       .map(\.track)
   }
 

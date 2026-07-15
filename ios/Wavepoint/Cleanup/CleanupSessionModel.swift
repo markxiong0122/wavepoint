@@ -3,6 +3,7 @@ import Observation
 
 enum CleanupSessionState: Equatable, Sendable {
   case idle
+  case choosingBatch
   case loading
   case deciding
   case reviewing
@@ -36,21 +37,27 @@ final class CleanupSessionModel {
   private(set) var deck: [LibraryTrack] = []
   private(set) var decisions: [CleanupDecision] = []
   private(set) var alreadyCommittedCount = 0
+  private(set) var libraryLoadProgress: CleanupLibraryLoadProgress?
 
   private let service: any CleanupLibraryServing
   private let deckBuilder: CleanupDeckBuilder
   private let analytics: any AnalyticsCapturing
   private let crashReporting: any CrashReporting
+  private let presentationOverride: CleanupProviderPresentation?
   private var committedTrackIDs: Set<String> = []
+  private var loadedTracks: [LibraryTrack]?
+  private var selectedBatch: CleanupBatchSize?
 
   init(
     service: any CleanupLibraryServing,
     deckBuilder: CleanupDeckBuilder = CleanupDeckBuilder(),
+    presentation: CleanupProviderPresentation? = nil,
     analytics: any AnalyticsCapturing = NoOpAnalytics(),
     crashReporting: any CrashReporting = NoOpCrashReporting()
   ) {
     self.service = service
     self.deckBuilder = deckBuilder
+    presentationOverride = presentation
     self.analytics = analytics
     self.crashReporting = crashReporting
   }
@@ -70,35 +77,94 @@ final class CleanupSessionModel {
 
   var provider: MusicProvider { service.provider }
   var presentation: CleanupProviderPresentation {
-    CleanupProviderPresentation(provider: provider)
+    presentationOverride ?? CleanupProviderPresentation(provider: provider)
   }
 
   var completedCount: Int { decisions.count }
   var totalCount: Int { deck.count }
   var requiresProviderChangeConfirmation: Bool { !decisions.isEmpty }
 
-  func load() async {
-    state = .loading
-    deck = []
-    decisions = []
-    committedTrackIDs = []
-    alreadyCommittedCount = 0
+  func prepare() async {
+    resetLoadState()
+    state = .choosingBatch
+    await fetchLibrary()
+  }
 
+  func chooseBatch(_ batch: CleanupBatchSize) {
+    guard state == .choosingBatch else { return }
+    selectedBatch = batch
+    guard let loadedTracks else {
+      state = .loading
+      return
+    }
+    buildDeck(from: loadedTracks, batch: batch)
+  }
+
+  func load(batch: CleanupBatchSize = .crateDig) async {
+    resetLoadState()
+    selectedBatch = batch
+    state = .loading
+    await fetchLibrary()
+  }
+
+  func retryLoad() async {
+    let batch = selectedBatch
+    resetLoadState()
+    selectedBatch = batch
+    state = batch == nil ? .choosingBatch : .loading
+    await fetchLibrary()
+  }
+
+  private func fetchLibrary() async {
     do {
-      deck = try await deckBuilder.build(
-        from: service.fetchLibraryTracks()
+      let tracks = try await service.fetchLibraryTracks { [weak self] progress in
+        await self?.updateLibraryLoadProgress(progress)
+      }
+      loadedTracks = tracks
+      let totalCount = max(libraryLoadProgress?.totalCount ?? 0, tracks.count)
+      libraryLoadProgress = CleanupLibraryLoadProgress(
+        loadedCount: totalCount,
+        totalCount: totalCount
       )
-      analytics.capture(.cleanupDeckLoaded(AnalyticsProvider(provider)))
-      state =
-        deck.isEmpty
-        ? .complete(
-          CleanupSummary(provider: provider, decisionCount: 0, result: .noChanges)
-        )
-        : .deciding
+
+      if let selectedBatch {
+        buildDeck(from: tracks, batch: selectedBatch)
+      }
+    } catch is CancellationError {
+      return
     } catch {
       crashReporting.record(.libraryLoad)
       state = .failed(error.localizedDescription)
     }
+  }
+
+  private func updateLibraryLoadProgress(_ progress: CleanupLibraryLoadProgress) {
+    libraryLoadProgress = progress
+  }
+
+  private func buildDeck(from tracks: [LibraryTrack], batch: CleanupBatchSize) {
+    deck = deckBuilder.build(
+      from: tracks,
+      maximumTrackCount: batch.songCount
+    )
+    loadedTracks = nil
+    analytics.capture(.cleanupDeckLoaded(AnalyticsProvider(provider)))
+    state =
+      deck.isEmpty
+      ? .complete(
+        CleanupSummary(provider: provider, decisionCount: 0, result: .noChanges)
+      )
+      : .deciding
+  }
+
+  private func resetLoadState() {
+    deck = []
+    decisions = []
+    committedTrackIDs = []
+    alreadyCommittedCount = 0
+    libraryLoadProgress = nil
+    loadedTracks = nil
+    selectedBatch = nil
   }
 
   func keepCurrentTrack() {
@@ -171,10 +237,7 @@ final class CleanupSessionModel {
       analytics.capture(.cleanupSessionAbandoned(AnalyticsProvider(provider)))
     }
     state = .idle
-    deck = []
-    decisions = []
-    committedTrackIDs = []
-    alreadyCommittedCount = 0
+    resetLoadState()
   }
 
   private var isComplete: Bool {

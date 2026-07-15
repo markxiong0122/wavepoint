@@ -57,10 +57,11 @@ final class SpotifyWebAPIClientTests: XCTestCase {
         status: 200,
         body: savedTracksPage(
           id: "one",
-          next: "https://api.spotify.com/v1/me/tracks?offset=1&limit=50"
+          total: 51,
+          offset: 0
         )
       ),
-      response(status: 200, body: savedTracksPage(id: "two", next: nil)),
+      response(status: 200, body: savedTracksPage(id: "two", total: 51, offset: 50)),
     ])
     let client = SpotifyWebAPIClient(transport: transport) { _ in "spotify-access" }
 
@@ -80,7 +81,23 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     XCTAssertEqual(requests.count, 2)
     XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer spotify-access")
     XCTAssertEqual(
-      requests[1].url?.absoluteString, "https://api.spotify.com/v1/me/tracks?offset=1&limit=50")
+      requests[1].url?.absoluteString, "https://api.spotify.com/v1/me/tracks?limit=50&offset=50")
+  }
+
+  func testFetchSavedTracksLoadsRemainingPagesWithBoundedConcurrency() async throws {
+    let transport = ConcurrentPagingSpotifyTransport(total: 250)
+    let client = SpotifyWebAPIClient(
+      transport: transport,
+      maximumConcurrentPageRequests: 4
+    ) { _ in "token" }
+
+    let tracks = try await client.fetchSavedTracks()
+    let requestedOffsets = await transport.requestedOffsets
+    let maximumActiveRequestCount = await transport.maximumActiveRequestCount
+
+    XCTAssertEqual(tracks.map(\.id), ["0", "50", "100", "150", "200"])
+    XCTAssertEqual(requestedOffsets, [0, 50, 100, 150, 200])
+    XCTAssertEqual(maximumActiveRequestCount, 4)
   }
 
   func testUnauthorizedResponseMapsToAuthorizationExpired() async {
@@ -101,7 +118,7 @@ final class SpotifyWebAPIClientTests: XCTestCase {
   func testUnauthorizedResponseRefreshesTokenAndRetriesOnce() async throws {
     let transport = RecordingSpotifyTransport(responses: [
       response(status: 401, body: "{}"),
-      response(status: 200, body: savedTracksPage(id: "retried", next: nil)),
+      response(status: 200, body: savedTracksPage(id: "retried", total: 1, offset: 0)),
     ])
     let provider = RecordingAccessTokenProvider()
     let client = SpotifyWebAPIClient(transport: transport) { forceRefresh in
@@ -156,10 +173,9 @@ final class SpotifyWebAPIClientTests: XCTestCase {
     XCTAssertTrue(requests.isEmpty)
   }
 
-  private func savedTracksPage(id: String, next: String?) -> String {
-    let nextValue = next.map { "\"\($0)\"" } ?? "null"
+  private func savedTracksPage(id: String, total: Int, offset: Int) -> String {
     return """
-      {"items":[{"added_at":"2020-01-01T00:00:00Z","track":\(trackJSON(id: id))}],"next":\(nextValue)}
+      {"items":[{"added_at":"2020-01-01T00:00:00Z","track":\(trackJSON(id: id))}],"total":\(total),"offset":\(offset),"limit":50,"next":null}
       """
   }
 
@@ -205,5 +221,45 @@ private actor RecordingSpotifyTransport: SpotifyHTTPTransport {
       throw SpotifyWebAPIError.invalidResponse
     }
     return responses.removeFirst()
+  }
+}
+
+private actor ConcurrentPagingSpotifyTransport: SpotifyHTTPTransport {
+  private(set) var requestedOffsets: [Int] = []
+  private(set) var maximumActiveRequestCount = 0
+  private var activeRequestCount = 0
+  private let total: Int
+
+  init(total: Int) {
+    self.total = total
+  }
+
+  func send(_ request: URLRequest) async throws -> SpotifyHTTPResponse {
+    let components = URLComponents(
+      url: request.url ?? URL(string: "https://api.spotify.com")!,
+      resolvingAgainstBaseURL: false
+    )
+    let offset = Int(
+      components?.queryItems?.first(where: { $0.name == "offset" })?.value ?? "0"
+    ) ?? 0
+    requestedOffsets.append(offset)
+    requestedOffsets.sort()
+    activeRequestCount += 1
+    maximumActiveRequestCount = max(maximumActiveRequestCount, activeRequestCount)
+    defer { activeRequestCount -= 1 }
+
+    try await Task.sleep(for: .milliseconds(20))
+    let body = """
+      {"items":[{"added_at":"2020-01-01T00:00:00Z","track":{"id":"\(offset)","uri":"spotify:track:\(offset)","name":"Song \(offset)","artists":[{"name":"Artist"}],"album":{"images":[]},"preview_url":null,"external_urls":{"spotify":"https://open.spotify.com/track/\(offset)"},"duration_ms":180000}}],"total":\(total),"offset":\(offset),"limit":50,"next":null}
+      """
+    return SpotifyHTTPResponse(
+      data: Data(body.utf8),
+      response: HTTPURLResponse(
+        url: request.url ?? URL(string: "https://api.spotify.com")!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: nil
+      )!
+    )
   }
 }

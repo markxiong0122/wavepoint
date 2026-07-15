@@ -67,6 +67,35 @@ final class CleanupSessionModelTests: XCTestCase {
     XCTAssertEqual(model.totalCount, 2)
   }
 
+  func testPreparedLibraryWaitsForBatchChoiceThenUsesThatLimit() async {
+    let tracks = (0..<60).map {
+      track(id: "\($0)", addedAt: Date(timeIntervalSince1970: TimeInterval($0)))
+    }
+    let model = CleanupSessionModel(service: FakeCleanupLibraryService(tracks: tracks))
+
+    await model.prepare()
+
+    XCTAssertEqual(model.state, .choosingBatch)
+    XCTAssertEqual(model.libraryLoadProgress, .init(loadedCount: 60, totalCount: 60))
+
+    model.chooseBatch(.needleDrop)
+
+    XCTAssertEqual(model.state, .deciding)
+    XCTAssertEqual(model.totalCount, 10)
+  }
+
+  func testEachBatchModeBuildsTheRequestedDeckSize() async {
+    let tracks = (0..<75).map {
+      track(id: "\($0)", addedAt: Date(timeIntervalSince1970: TimeInterval($0)))
+    }
+
+    for batch in CleanupBatchSize.allCases {
+      let model = CleanupSessionModel(service: FakeCleanupLibraryService(tracks: tracks))
+      await model.load(batch: batch)
+      XCTAssertEqual(model.totalCount, batch.songCount)
+    }
+  }
+
   func testKeepRemoveAndUndoRestoreThePreviousCard() async {
     let first = track(id: "first", addedAt: Date(timeIntervalSince1970: 0))
     let second = track(id: "second", addedAt: Date(timeIntervalSince1970: 1))

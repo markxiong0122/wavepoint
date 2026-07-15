@@ -38,15 +38,18 @@ protocol SpotifyAccountEligibilityChecking: Sendable {
 struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChecking {
   private let transport: any SpotifyHTTPTransport
   private let accessToken: @Sendable (Bool) async throws -> String
+  private let maximumConcurrentPageRequests: Int
   private let baseURL = URL(string: "https://api.spotify.com/v1")!
 
   let provider = MusicProvider.spotify
 
   init(
     transport: any SpotifyHTTPTransport = URLSessionSpotifyTransport(),
+    maximumConcurrentPageRequests: Int = 4,
     accessToken: @escaping @Sendable (Bool) async throws -> String
   ) {
     self.transport = transport
+    self.maximumConcurrentPageRequests = max(1, maximumConcurrentPageRequests)
     self.accessToken = accessToken
   }
 
@@ -74,6 +77,12 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
     try await fetchSavedTracks()
   }
 
+  func fetchLibraryTracks(
+    progress: @escaping @Sendable (CleanupLibraryLoadProgress) async -> Void
+  ) async throws -> [LibraryTrack] {
+    try await fetchSavedTracks(progress: progress)
+  }
+
   func commit(trackIDs: [String]) async throws -> CleanupCommitResult {
     do {
       return .removed(count: try await removeFromLibrary(uris: trackIDs))
@@ -85,21 +94,69 @@ struct SpotifyWebAPIClient: CleanupLibraryServing, SpotifyAccountEligibilityChec
     }
   }
 
-  func fetchSavedTracks() async throws -> [LibraryTrack] {
-    var nextURL: URL? =
-      baseURL
-      .appending(path: "me/tracks")
-      .appending(queryItems: [URLQueryItem(name: "limit", value: "50")])
-    var tracks: [LibraryTrack] = []
+  func fetchSavedTracks(
+    progress: @escaping @Sendable (CleanupLibraryLoadProgress) async -> Void = { _ in }
+  ) async throws -> [LibraryTrack] {
+    let pageSize = 50
+    let firstPage = try await fetchSavedTracksPage(offset: 0, limit: pageSize)
+    var pages = [firstPage.offset: firstPage.items.compactMap(\.libraryTrack)]
+    var loadedCount = firstPage.items.count
+    await progress(
+      CleanupLibraryLoadProgress(
+        loadedCount: min(loadedCount, firstPage.total),
+        totalCount: firstPage.total
+      )
+    )
 
-    while let url = nextURL {
-      let response = try await sendAuthorizedRequest(to: url)
-      let page = try decode(SavedTracksPage.self, from: response.data)
-      tracks.append(contentsOf: page.items.compactMap(\.libraryTrack))
-      nextURL = page.next
+    let remainingOffsets = Array(
+      stride(from: pageSize, to: firstPage.total, by: pageSize)
+    )
+    guard !remainingOffsets.isEmpty else { return pages[firstPage.offset] ?? [] }
+
+    try await withThrowingTaskGroup(of: (Int, SavedTracksPage).self) { group in
+      var offsets = remainingOffsets.makeIterator()
+
+      for _ in 0..<min(maximumConcurrentPageRequests, remainingOffsets.count) {
+        guard let offset = offsets.next() else { break }
+        group.addTask {
+          (offset, try await fetchSavedTracksPage(offset: offset, limit: pageSize))
+        }
+      }
+
+      while let (offset, page) = try await group.next() {
+        pages[offset] = page.items.compactMap(\.libraryTrack)
+        loadedCount += page.items.count
+        await progress(
+          CleanupLibraryLoadProgress(
+            loadedCount: min(loadedCount, firstPage.total),
+            totalCount: firstPage.total
+          )
+        )
+
+        if let nextOffset = offsets.next() {
+          group.addTask {
+            (
+              nextOffset,
+              try await fetchSavedTracksPage(offset: nextOffset, limit: pageSize)
+            )
+          }
+        }
+      }
     }
 
-    return tracks
+    return pages.keys.sorted().flatMap { pages[$0] ?? [] }
+  }
+
+  private func fetchSavedTracksPage(offset: Int, limit: Int) async throws -> SavedTracksPage {
+    let url =
+      baseURL
+      .appending(path: "me/tracks")
+      .appending(queryItems: [
+        URLQueryItem(name: "limit", value: String(limit)),
+        URLQueryItem(name: "offset", value: String(offset)),
+      ])
+    let response = try await sendAuthorizedRequest(to: url)
+    return try decode(SavedTracksPage.self, from: response.data)
   }
 
   func removeFromLibrary(uris: [String]) async throws -> Int {
@@ -250,7 +307,8 @@ private struct CurrentUserProfile: Decodable {
 
 private struct SavedTracksPage: Decodable {
   let items: [SavedTrackItem]
-  let next: URL?
+  let total: Int
+  let offset: Int
 }
 
 private struct SavedTrackItem: Decodable {

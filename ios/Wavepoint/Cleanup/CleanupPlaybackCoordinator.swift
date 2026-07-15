@@ -17,9 +17,14 @@ final class CleanupPlaybackCoordinator {
   private var hasStartedDeck = false
   private var prefersManualPlayback = false
   private var presentationGeneration = 0
+  private let usesDirectPreviewForAutomaticPlayback: Bool
 
-  init(player: TrackPreviewPlayer) {
+  init(
+    player: TrackPreviewPlayer,
+    usesDirectPreviewForAutomaticPlayback: Bool = false
+  ) {
     self.player = player
+    self.usesDirectPreviewForAutomaticPlayback = usesDirectPreviewForAutomaticPlayback
   }
 
   func present(_ track: LibraryTrack) async {
@@ -38,7 +43,10 @@ final class CleanupPlaybackCoordinator {
       await player.stop()
       guard generation == presentationGeneration else { return }
     }
-    player.prepare(previewURL: nil, playbackID: track.playbackID)
+    player.prepare(
+      previewURL: usesDirectPreviewForAutomaticPlayback ? track.previewURL : nil,
+      playbackID: track.playbackID
+    )
     await player.togglePlayback()
     guard generation == presentationGeneration else { return }
 

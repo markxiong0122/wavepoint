@@ -100,7 +100,9 @@ struct AppRootView: View {
   @State private var spotifyModel: AppSessionModel
   @State private var spotifyCleanupModel: CleanupSessionModel
   @State private var appleMusicCleanupModel: CleanupSessionModel
+  @State private var demoCleanupModel: CleanupSessionModel
   @State private var shouldStartSpotifySignIn = false
+  @State private var isDemoActive = false
 
   private let spotifyPlayback: SpotifyAppRemoteService
   private let appleMusicPlayback: AppleMusicTrackPlayer
@@ -111,117 +113,134 @@ struct AppRootView: View {
     spotifyCleanupModel: CleanupSessionModel,
     spotifyPlayback: SpotifyAppRemoteService,
     appleMusicCleanupModel: CleanupSessionModel,
-    appleMusicPlayback: AppleMusicTrackPlayer
+    appleMusicPlayback: AppleMusicTrackPlayer,
+    demoCleanupModel: CleanupSessionModel
   ) {
     _providerModel = State(initialValue: providerModel)
     _spotifyModel = State(initialValue: spotifyModel)
     _spotifyCleanupModel = State(initialValue: spotifyCleanupModel)
     _appleMusicCleanupModel = State(initialValue: appleMusicCleanupModel)
+    _demoCleanupModel = State(initialValue: demoCleanupModel)
     self.spotifyPlayback = spotifyPlayback
     self.appleMusicPlayback = appleMusicPlayback
   }
 
   var body: some View {
     Group {
-      switch rootScreen {
-      case .progress:
-        authenticationProgress
-      case .providerPicker:
-        MusicProviderPickerView(
-          onSelectSpotify: selectSpotify,
-          onSelectAppleMusic: {
-            Task { await providerModel.connectAppleMusic() }
-          }
-        )
-      case .login:
-        SpotifyLoginView(
-          onSignIn: { Task { await spotifyModel.signIn() } },
-          onChangeProvider: changeProvider
-        )
-      case .cleanup(let provider):
-        cleanupView(provider: provider)
-      case .spotifyPremiumRequired:
-        connectionBlocker(
-          eyebrow: "SPOTIFY PREMIUM REQUIRED",
-          message: "Wavepoint uses Spotify playback while you decide. Spotify Free accounts cannot start that playback.",
-          primaryTitle: "TRY ANOTHER SPOTIFY ACCOUNT",
-          identifier: "spotify-premium-required",
-          primaryAction: { Task { await spotifyModel.reconnect() } }
-        )
-      case .spotifyReconnectRequired:
-        connectionBlocker(
-          eyebrow: "RECONNECT SPOTIFY",
-          message: "Wavepoint could not verify this account. Reconnect with the latest permissions, or ask the app owner to add this account as a tester.",
-          primaryTitle: "RECONNECT SPOTIFY",
-          identifier: "spotify-reconnect-required",
-          primaryAction: { Task { await spotifyModel.reconnect() } }
-        )
-      case .spotifyEligibilityUnavailable:
-        connectionBlocker(
-          eyebrow: "COULDN'T CHECK PREMIUM",
-          message: "Spotify did not return a subscription status. Your connection is saved, so you can retry without signing in again.",
-          primaryTitle: "TRY AGAIN",
-          identifier: "spotify-eligibility-unavailable",
-          primaryAction: { Task { await spotifyModel.retryEligibility() } }
-        )
-      case .appleMusicPermissionDenied:
-        connectionBlocker(
-          eyebrow: "APPLE MUSIC ACCESS NEEDED",
-          message: "Allow Media & Apple Music access in Settings so Wavepoint can read your library and build the Dumpster.",
-          primaryTitle: "OPEN SETTINGS",
-          identifier: "apple-music-permission-denied",
-          primaryAction: openSettings
-        )
-      case .appleMusicRestricted:
-        connectionBlocker(
-          eyebrow: "APPLE MUSIC IS RESTRICTED",
-          message: "This iPhone currently blocks Apple Music library access. Check Screen Time or device-management restrictions.",
-          primaryTitle: "CHECK AGAIN",
-          identifier: "apple-music-restricted",
-          primaryAction: retryAppleMusic
-        )
-      case .appleMusicPrivacyAcknowledgementRequired:
-        connectionBlocker(
-          eyebrow: "FINISH SETTING UP APPLE MUSIC",
-          message: "Open Music and accept Apple's privacy acknowledgement, then return to Wavepoint.",
-          primaryTitle: "OPEN MUSIC",
-          identifier: "apple-music-privacy-acknowledgement-required",
-          primaryAction: openMusic
-        )
-      case .appleMusicAccountNotReady:
-        connectionBlocker(
-          eyebrow: "FINISH APPLE MUSIC SETUP",
-          message: "Open Music, dismiss any What's New, privacy, or account setup screen, and make sure a song can play. Then return to Wavepoint.",
-          primaryTitle: "OPEN MUSIC",
-          identifier: "apple-music-account-not-ready",
-          primaryAction: openMusic
-        )
-      case .appleMusicServiceUnavailable:
-        connectionBlocker(
-          eyebrow: "APPLE MUSIC CONNECTION MISSED",
-          message: "Wavepoint could not verify its Apple Music connection. Check your internet connection and try again. If this keeps happening, contact Support.",
-          primaryTitle: "TRY AGAIN",
-          identifier: "apple-music-service-unavailable",
-          primaryAction: retryAppleMusic
-        )
-      case .appleMusicSubscriptionRequired:
-        connectionBlocker(
-          eyebrow: "APPLE MUSIC REQUIRED",
-          message: "Wavepoint needs an active Apple Music subscription to play cleanup tracks and build your Dumpster playlist.",
-          primaryTitle: "CHECK AGAIN",
-          identifier: "apple-music-subscription-required",
-          primaryAction: retryAppleMusic
-        )
-      case .appleMusicSyncLibraryRequired:
-        connectionBlocker(
-          eyebrow: "TURN ON SYNC LIBRARY",
-          message: "Enable Sync Library in Settings → Music, then return here so Wavepoint can see your full library.",
-          primaryTitle: "CHECK AGAIN",
-          identifier: "apple-music-sync-library-required",
-          primaryAction: retryAppleMusic
-        )
-      case .error(let message):
-        authenticationError(message)
+      if isDemoActive {
+        demoCleanupView
+      } else {
+        switch rootScreen {
+        case .progress:
+          authenticationProgress
+        case .providerPicker:
+          MusicProviderPickerView(
+            onSelectSpotify: selectSpotify,
+            onSelectAppleMusic: {
+              Task { await providerModel.connectAppleMusic() }
+            },
+            onTryDemo: startDemo
+          )
+        case .login:
+          SpotifyLoginView(
+            onSignIn: { Task { await spotifyModel.signIn() } },
+            onChangeProvider: changeProvider
+          )
+        case .cleanup(let provider):
+          cleanupView(provider: provider)
+        case .spotifyPremiumRequired:
+          connectionBlocker(
+            eyebrow: "SPOTIFY PREMIUM REQUIRED",
+            message:
+              "Wavepoint uses Spotify playback while you decide. Spotify Free accounts cannot start that playback.",
+            primaryTitle: "TRY ANOTHER SPOTIFY ACCOUNT",
+            identifier: "spotify-premium-required",
+            primaryAction: { Task { await spotifyModel.reconnect() } }
+          )
+        case .spotifyReconnectRequired:
+          connectionBlocker(
+            eyebrow: "RECONNECT SPOTIFY",
+            message:
+              "Wavepoint could not verify this account. Reconnect with the latest permissions, or ask the app owner to add this account as a tester.",
+            primaryTitle: "RECONNECT SPOTIFY",
+            identifier: "spotify-reconnect-required",
+            primaryAction: { Task { await spotifyModel.reconnect() } }
+          )
+        case .spotifyEligibilityUnavailable:
+          connectionBlocker(
+            eyebrow: "COULDN'T CHECK PREMIUM",
+            message:
+              "Spotify did not return a subscription status. Your connection is saved, so you can retry without signing in again.",
+            primaryTitle: "TRY AGAIN",
+            identifier: "spotify-eligibility-unavailable",
+            primaryAction: { Task { await spotifyModel.retryEligibility() } }
+          )
+        case .appleMusicPermissionDenied:
+          connectionBlocker(
+            eyebrow: "APPLE MUSIC ACCESS NEEDED",
+            message:
+              "Allow Media & Apple Music access in Settings so Wavepoint can read your library and build the Dumpster.",
+            primaryTitle: "OPEN SETTINGS",
+            identifier: "apple-music-permission-denied",
+            primaryAction: openSettings
+          )
+        case .appleMusicRestricted:
+          connectionBlocker(
+            eyebrow: "APPLE MUSIC IS RESTRICTED",
+            message:
+              "This iPhone currently blocks Apple Music library access. Check Screen Time or device-management restrictions.",
+            primaryTitle: "CHECK AGAIN",
+            identifier: "apple-music-restricted",
+            primaryAction: retryAppleMusic
+          )
+        case .appleMusicPrivacyAcknowledgementRequired:
+          connectionBlocker(
+            eyebrow: "FINISH SETTING UP APPLE MUSIC",
+            message:
+              "Open Music and accept Apple's privacy acknowledgement, then return to Wavepoint.",
+            primaryTitle: "OPEN MUSIC",
+            identifier: "apple-music-privacy-acknowledgement-required",
+            primaryAction: openMusic
+          )
+        case .appleMusicAccountNotReady:
+          connectionBlocker(
+            eyebrow: "FINISH APPLE MUSIC SETUP",
+            message:
+              "Open Music, dismiss any What's New, privacy, or account setup screen, and make sure a song can play. Then return to Wavepoint.",
+            primaryTitle: "OPEN MUSIC",
+            identifier: "apple-music-account-not-ready",
+            primaryAction: openMusic
+          )
+        case .appleMusicServiceUnavailable:
+          connectionBlocker(
+            eyebrow: "APPLE MUSIC CONNECTION MISSED",
+            message:
+              "Wavepoint could not verify its Apple Music connection. Check your internet connection and try again. If this keeps happening, contact Support.",
+            primaryTitle: "TRY AGAIN",
+            identifier: "apple-music-service-unavailable",
+            primaryAction: retryAppleMusic
+          )
+        case .appleMusicSubscriptionRequired:
+          connectionBlocker(
+            eyebrow: "APPLE MUSIC REQUIRED",
+            message:
+              "Wavepoint needs an active Apple Music subscription to play cleanup tracks and build your Dumpster playlist.",
+            primaryTitle: "CHECK AGAIN",
+            identifier: "apple-music-subscription-required",
+            primaryAction: retryAppleMusic
+          )
+        case .appleMusicSyncLibraryRequired:
+          connectionBlocker(
+            eyebrow: "TURN ON SYNC LIBRARY",
+            message:
+              "Enable Sync Library in Settings → Music, then return here so Wavepoint can see your full library.",
+            primaryTitle: "CHECK AGAIN",
+            identifier: "apple-music-sync-library-required",
+            primaryAction: retryAppleMusic
+          )
+        case .error(let message):
+          authenticationError(message)
+        }
       }
     }
     .task {
@@ -240,9 +259,10 @@ struct AppRootView: View {
     }
     .onChange(of: scenePhase) { oldPhase, newPhase in
       guard oldPhase != .active, newPhase == .active else { return }
-      guard providerModel.state == .appleMusicPermissionDenied
-        || providerModel.state == .appleMusicPrivacyAcknowledgementRequired
-        || providerModel.state == .appleMusicAccountNotReady
+      guard
+        providerModel.state == .appleMusicPermissionDenied
+          || providerModel.state == .appleMusicPrivacyAcknowledgementRequired
+          || providerModel.state == .appleMusicAccountNotReady
       else { return }
       retryAppleMusic()
     }
@@ -320,6 +340,17 @@ struct AppRootView: View {
     .foregroundStyle(WavepointTheme.paper)
     .background(WavepointTheme.darkSurface)
     .accessibilityIdentifier("auth-progress")
+  }
+
+  private var demoCleanupView: some View {
+    CleanupHomeView(
+      model: demoCleanupModel,
+      remotePlayback: nil,
+      onSignOut: exitDemo,
+      onDeleteAccount: {},
+      onChangeProvider: exitDemo,
+      usesDirectPreviewForAutomaticPlayback: true
+    )
   }
 
   private var authenticationProgressLabel: String {
@@ -428,6 +459,16 @@ struct AppRootView: View {
     spotifyCleanupModel.reset()
     appleMusicCleanupModel.reset()
     providerModel.clearSelection()
+  }
+
+  private func startDemo() {
+    demoCleanupModel.reset()
+    isDemoActive = true
+  }
+
+  private func exitDemo() {
+    demoCleanupModel.reset()
+    isDemoActive = false
   }
 
   private func signOutSpotify() {
