@@ -6,7 +6,7 @@ Spotify Premium because 15-second card autoplay uses Spotify App Remote.
 
 ## Local build
 
-Requirements: Java 21, Android SDK 36, and an API 26+ device.
+Requirements: JDK 17, Android SDK 36, and an API 26+ device.
 
 ```bash
 ./gradlew testDebugUnitTest assembleDebug
@@ -29,6 +29,12 @@ Add an Android package entry under **Edit settings**:
 
 Before a Play release, generate the release or Play App Signing SHA-1 and add it
 as another Android package fingerprint. Never commit a release keystore.
+
+The committed Gradle configuration does not define a release signing key. `bundleRelease`
+produces the release bundle for lint/build verification, but it is not ready for Play upload
+until an upload-key signing configuration is supplied through local or CI secrets. Keep the
+keystore, passwords, and signing properties outside the repository, then register the matching
+SHA-1 in Spotify before testing the Play-installed build.
 
 The Supabase Auth redirect allowlist must also contain
 `ai.mapier.swipe://login-callback`. Web OAuth returns there through the intent

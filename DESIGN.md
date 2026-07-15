@@ -2,11 +2,11 @@
 
 ## Product context
 
-- **What this is:** A fast Spotify Liked Songs cleanup app. It surfaces buried tracks one at a time so the user can hear a segment and confidently keep or remove each song.
-- **Who it is for:** People with years of accumulated Liked Songs who want a lighter, more intentional library without manual playlist administration.
+- **What this is:** A native music-library cleanup app. It surfaces buried tracks one at a time so the user can hear a segment and confidently keep or stage each song for cleanup.
+- **Who it is for:** People with years of accumulated Spotify Liked Songs or Apple Music library tracks who want a lighter, more intentional library without manual playlist administration.
 - **Space:** Music-library utilities and listening companions.
-- **Project type:** Mobile-first responsive web app.
-- **Primary promise:** Finally delete no-longer-listened-to songs in a fun, fast way.
+- **Project type:** Native iPhone and Android apps. iPhone supports Spotify and Apple Music; Android supports Spotify in the current release.
+- **Primary promise:** Finally clean up no-longer-listened-to songs in a fun, fast way.
 - **Primary measure:** Confident song decisions per minute.
 
 Daily music recommendations are not part of the first version.
@@ -21,12 +21,15 @@ Daily music recommendations are not part of the first version.
 
 ## Typography
 
-- **Display:** Bricolage Grotesque, variable width 92–96, weight 700–800. Its compact forms create speed and poster energy without sacrificing legibility.
-- **Body:** DM Sans, weight 400–700. It remains legible in compact track metadata and controls.
-- **UI labels:** IBM Plex Mono, weight 500–600. Use it for timers, counters, keyboard hints, and short uppercase system labels.
-- **Loading:** Google Fonts for the prototype. Production should self-host the exact WOFF2 subsets.
+- **Display:** Native rounded system type at heavy and black weights remains the fast, compact primary display face.
+- **Editorial accent:** Averia Serif Libre Bold is bundled locally and reserved for the cleanup-run picker and similarly rare editorial moments. Keep it to roughly 10–15% of visible type; never use it for track titles, controls, counters, or body copy.
+- **Body:** Native system type at medium through bold weights for compact track metadata and controls.
+- **UI labels:** Native monospaced system type at semibold through black weights for timers, counters, and short uppercase system labels.
+- **Prototype note:** The historical HTML prototype uses Bricolage Grotesque, DM Sans, and IBM Plex Mono. Production native clients otherwise use system fonts.
 
-### Type scale
+### Prototype type scale
+
+These responsive values apply to the historical HTML prototype. Native production screens use the same hierarchy with platform system sizes rather than CSS units.
 
 - Display XL: `clamp(4.2rem, 8.8vw, 8.8rem)`, line-height `0.82`
 - Display L: `clamp(3.2rem, 7vw, 6.6rem)`, line-height `0.90`
@@ -54,9 +57,9 @@ Use tight negative tracking only on display type. Body and system labels use nor
 
 Color must never be the only state indicator. Pair remove and keep colors with words and symbols.
 
-### Dark mode
+### Dark stage
 
-Dark mode inverts the page canvas to ink and the text to paper. The active track card remains warm paper so album art and metadata retain the same reading hierarchy. Semantic colors do not change.
+The native apps ship with a fixed ink canvas and paper track card so album art and metadata retain the same reading hierarchy. Semantic colors do not change. A separate adaptive light theme is not part of the current release.
 
 ## Spacing
 
@@ -83,45 +86,50 @@ Avoid using the same rounded rectangle treatment everywhere. The hierarchy of ra
 ## Layout
 
 - **Approach:** Hybrid. A poster-like editorial introduction frames a disciplined single-task app stage.
-- **Desktop:** Two-column hero with expressive copy on the left and a 520px cleanup stage on the right.
-- **Tablet and mobile:** One column, with the cleanup stage capped at 560px and centered.
-- **Content width:** 1320px for primary sections, 1440px for header and footer.
-- **Grid:** 48px paper-grid background on the surrounding canvas only.
-- **Album art:** Display complete and unobstructed. Never crop, distort, place copy over, or add branding to Spotify artwork.
+- **Phone:** One portrait column with the cleanup card sized from the available height so metadata and playback controls never slide under the fixed action row.
+- **Large prototype canvas:** The historical HTML concept uses a two-column poster composition. It is a visual reference, not the native production layout.
+- **Album art:** Center and fill the artwork frame without distortion or blank bars. A small edge crop is allowed when the adaptive card is not square. Never place copy over or add branding to provider artwork.
 
 ## Components
 
+### Cleanup-run picker
+
+- Offer **Needle Drop · 10**, **Side A · 25**, and **Crate Dig · 50** before the deck. Side A is the initial recommendation and the last selection is remembered locally.
+- Keep the numeric size dominant even when the mode name carries personality.
+- Start the provider library scan behind the picker and show truthful progress without uploading library size to analytics.
+- Use Averia Serif Libre Bold for the picker headline and mode names only. Counts, status, and the start control remain monospaced system type.
+
 ### Track card
 
-- Complete square album art at the top.
-- Save-age label and recent-rotation signal above the title.
+- Centered album artwork fills the adaptive frame at the top.
+- Save-age label and card index above the title.
 - Track title and artist form the primary reading order.
-- Audio control, 15-second progress, and card index sit below metadata.
-- Remove and keep hints remain visible near the bottom edge.
+- The 15-second audio control and provider link sit below metadata.
+- Remove, undo, and keep controls remain visible in the fixed action row below the card.
 
 ### Decision controls
 
 - Remove sits left and uses `× Remove` on the remove color.
 - Keep sits right and uses `✓ Keep` on the keep color.
 - Undo sits between them as the quiet neutral control.
-- Buttons, keyboard shortcuts, and pointer swipes call the same decision action.
+- Buttons and touch swipes call the same decision action.
 
 ### Progress
 
 - Show decisions completed and staged removals at all times.
-- Show elapsed time, not a countdown, to avoid anxiety.
-- Completion summarizes decisions, removals, elapsed time, and listening time cleared.
+- Do not add a countdown that makes the cleanup session feel timed or anxious.
+- Completion states the confirmed provider result and the correct next action.
 
 ### Destructive-state rule
 
-Swipes stage removals. A later production review screen commits the batch to Spotify. Do not permanently delete on the swipe itself.
+Swipes stage cleanup choices. The existing review screen either commits Spotify removals or appends Apple Music choices to the Dumpster playlist. Do not change a provider library on the swipe itself.
 
 ## Motion
 
 - **Approach:** Intentional and interaction-led.
 - **Drag:** 1:1 pointer tracking; rotation capped at 7 degrees.
 - **Threshold:** Reveal remove or keep label after about 30% horizontal travel.
-- **Decision exit:** 220ms with `cubic-bezier(0.16, 1, 0.3, 1)`.
+- **Decision exit:** 180–220ms with a fast ease-out curve.
 - **Next-card entry:** 280ms with a small vertical settle.
 - **Button micro-interaction:** 120ms translate, no elastic scale.
 - **Reduced motion:** Remove rotation and overshoot. Preserve state changes with near-instant opacity changes.
@@ -133,12 +141,13 @@ Motion must make the next decision available quickly. It must never become a rew
 - Provide visible high-contrast focus rings in audio blue.
 - Use words and symbols in addition to semantic colors.
 - Keep decision targets at least 48px.
-- Announce decisions and undo through a polite live region.
-- Support left arrow for remove, right arrow for keep, and `Z` for undo.
-- Respect `prefers-reduced-motion`.
-- Do not depend on hover for essential content.
+- Give decisions, playback, undo, and recovery controls explicit accessibility labels and stable identifiers.
+- Respect the native Reduce Motion accessibility setting.
+- Do not depend on pointer hover or color for essential content.
 
-## Spotify implementation constraints
+## Provider implementation constraints
+
+### Spotify
 
 - Use `added_at` for save age.
 - Do not imply recent-listening evidence or claim an exact last-listened date or play count. Production decks use saved age only.
@@ -146,6 +155,13 @@ Motion must make the next decision available quickly. It must never become a rew
 - Require an initiating user gesture before expecting continuous segment playback.
 - Stage and batch library removals through the current generic library endpoint.
 - Preserve artwork and include required Spotify attribution and links in production.
+
+### Apple Music
+
+- Require Media & Apple Music permission, an active subscription, and Sync Library before loading a cleanup deck.
+- Treat MusicKit authorization, subscription, playback, library pagination, and playlist writes as physical-device release gates.
+- Never claim the Dumpster update deleted a song. Tell the user to choose **Delete from Library** inside Music.
+- Append only newly staged tracks to an existing Dumpster playlist; do not rebuild it from historical song identifiers.
 
 ## Logo
 
