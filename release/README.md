@@ -10,8 +10,9 @@ App Store IPA files in this directory are signed distribution builds for `ai.map
 - `Wavepoint-0.1.0-6.ipa`: autoplay recovery, adaptive cleanup-card layout, and game-feel haptics, uploaded to TestFlight.
 - `Wavepoint-0.1.0-7.ipa`: Apple Music connection recovery, repeat Dumpster batches, and Simulator state QA, uploaded to TestFlight.
 - `Wavepoint-0.1.0-8.ipa`: faster Spotify loading, selectable 10/25/50-song cleanup runs, Averia editorial accents, the local App Review demo, and the redesigned app icon, uploaded to TestFlight.
+- `Wavepoint-0.1.0-9.ipa`: unchanged app functionality rebuilt with Xcode 26.6 and the iOS 26.5 SDK after App Review rejected build 8's older toolchain.
 
-Build 8 upload was accepted by App Store Connect on July 14, 2026. Delivery `15efdf54-f96e-4362-a231-fe873d20b650` finished processing with status `VALID`.
+Build 9 delivery `8bf4d06a-c1d1-4337-9000-9095e5b00de8` finished processing with status `VALID` and audience `APP_STORE_ELIGIBLE`, then entered `WAITING_FOR_REVIEW` on July 15, 2026.
 
 ## Current App Review notes
 

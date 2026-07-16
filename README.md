@@ -84,4 +84,4 @@ deno test supabase/functions/spotify-token-refresh/index_test.ts supabase/functi
 
 ## Release status
 
-TestFlight build 8 (`0.1.0`) was uploaded and accepted by App Store Connect. Public release is still gated on the unchecked items in [docs/release-checklist.md](docs/release-checklist.md), including physical Apple Music verification and observability configuration.
+App Store build 9 (`0.1.0`) was rebuilt with Xcode 26.6 after build 8 was rejected for an unsupported SDK. Build 9 passed App Store Connect validation and was resubmitted for review on July 15, 2026. Remaining operational follow-ups are tracked in [docs/release-checklist.md](docs/release-checklist.md).
